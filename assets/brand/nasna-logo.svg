@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="240" viewBox="0 0 900 240" role="img" aria-labelledby="title desc">
+  <title id="title">NASNA logo</title>
+  <desc id="desc">NASNA People Management Platform logo in teal and deep navy.</desc>
+  <rect width="900" height="240" fill="none"/>
+  <g transform="translate(32 32)">
+    <rect width="176" height="176" rx="44" fill="#099999"/>
+    <path d="M48 126V50L128 126V50" fill="none" stroke="#FFFFFF" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="48" cy="50" r="13" fill="#FFFFFF"/>
+    <circle cx="128" cy="50" r="13" fill="#FFFFFF"/>
+    <circle cx="128" cy="126" r="13" fill="#FFFFFF"/>
+  </g>
+  <g transform="translate(244 54)">
+    <text x="0" y="82" fill="#142B3A" font-family="Manrope, Inter, Arial, sans-serif" font-size="86" font-weight="800" letter-spacing="8">NASNA</text>
+    <text x="4" y="132" fill="#099999" font-family="Almarai, Tahoma, Arial, sans-serif" font-size="30" font-weight="700">ناسنا</text>
+    <circle cx="112" cy="122" r="4" fill="#B8C4C9"/>
+    <text x="130" y="132" fill="#647681" font-family="Manrope, Inter, Arial, sans-serif" font-size="25" font-weight="600" letter-spacing="1">PEOPLE MANAGEMENT PLATFORM</text>
+  </g>
+</svg>
