@@ -1,1 +1,189 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#099999">
+  <meta name="description" content="NASNA — a modern People Management Platform for connected teams.">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="NASNA">
+  <title>Sign in | NASNA</title>
+  <link rel="icon" href="assets/brand/nasna-mark.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="assets/icons/icon-192.png">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Almarai:wght@400;700;800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#loginForm">Skip to sign in</a>
 
+  <main class="auth-shell">
+    <section class="brand-panel" aria-labelledby="brandHeading">
+      <div class="brand-panel__glow brand-panel__glow--one" aria-hidden="true"></div>
+      <div class="brand-panel__glow brand-panel__glow--two" aria-hidden="true"></div>
+
+      <header class="brand-header">
+        <a class="brand-lockup" href="./" aria-label="NASNA home">
+          <img src="assets/brand/nasna-mark.svg" width="46" height="46" alt="">
+          <span>NASNA</span>
+        </a>
+
+        <button class="language-button" id="languageButton" type="button" aria-label="Switch to Arabic">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Zm0 0c2.2-2.5 3.3-5.5 3.3-9S14.2 5.5 12 3m0 18c-2.2-2.5-3.3-5.5-3.3-9S9.8 5.5 12 3M3.6 9h16.8M3.6 15h16.8"/>
+          </svg>
+          <span id="languageLabel">العربية</span>
+        </button>
+      </header>
+
+      <div class="brand-story">
+        <div class="eyebrow">
+          <span class="eyebrow__dot" aria-hidden="true"></span>
+          <span data-i18n="platform">People Management Platform</span>
+        </div>
+        <h1 id="brandHeading" data-i18n="brandHeading">Your people.<br>One connected platform.</h1>
+        <p data-i18n="brandCopy">
+          Bring employee records, time, performance, and insights together in one clear workspace.
+        </p>
+      </div>
+
+      <div class="product-preview" aria-label="NASNA product capabilities">
+        <div class="preview-card preview-card--primary">
+          <div class="preview-card__topline">
+            <span data-i18n="peopleOverview">People overview</span>
+            <span class="live-pill"><span></span><b data-i18n="live">Live</b></span>
+          </div>
+          <div class="preview-metric">
+            <strong>248</strong>
+            <span data-i18n="activePeople">Active people</span>
+          </div>
+          <div class="preview-bars" aria-hidden="true">
+            <i style="--bar: 48%"></i>
+            <i style="--bar: 66%"></i>
+            <i style="--bar: 58%"></i>
+            <i style="--bar: 82%"></i>
+            <i style="--bar: 72%"></i>
+            <i style="--bar: 92%"></i>
+            <i style="--bar: 76%"></i>
+          </div>
+        </div>
+
+        <div class="preview-card preview-card--floating" aria-hidden="true">
+          <div class="avatar-stack">
+            <span>LN</span><span>AM</span><span>SK</span><span>+8</span>
+          </div>
+          <strong data-i18n="teamConnected">Team connected</strong>
+        </div>
+      </div>
+
+      <footer class="brand-footer">
+        <span>© <span id="currentYear"></span> NASNA</span>
+        <span data-i18n="poweredBy">Powered by X Academy</span>
+      </footer>
+    </section>
+
+    <section class="form-panel">
+      <div class="mobile-header">
+        <a class="brand-lockup brand-lockup--mobile" href="./" aria-label="NASNA home">
+          <img src="assets/brand/nasna-mark.svg" width="42" height="42" alt="">
+          <span>NASNA</span>
+        </a>
+        <button class="language-button language-button--mobile" id="mobileLanguageButton" type="button" aria-label="Switch to Arabic">
+          <span id="mobileLanguageLabel">العربية</span>
+        </button>
+      </div>
+
+      <div class="login-card">
+        <div class="login-card__heading">
+          <div class="welcome-mark" aria-hidden="true">
+            <svg viewBox="0 0 24 24">
+              <path d="M4 12.5 9 17l11-11"/>
+            </svg>
+          </div>
+          <p class="overline" data-i18n="welcomeBack">Welcome back</p>
+          <h2 data-i18n="signInTitle">Sign in to NASNA</h2>
+          <p data-i18n="signInCopy">Access your people workspace securely.</p>
+        </div>
+
+        <form id="loginForm" novalidate>
+          <div class="field">
+            <label for="email" data-i18n="workEmail">Work email</label>
+            <div class="input-wrap">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M3.5 6.5h17v11h-17zM4 7l8 6 8-6"/>
+              </svg>
+              <input id="email" name="email" type="email" inputmode="email" autocomplete="username" placeholder="name@company.com" required aria-describedby="emailError">
+            </div>
+            <small class="field-error" id="emailError" aria-live="polite"></small>
+          </div>
+
+          <div class="field">
+            <div class="field__label-row">
+              <label for="password" data-i18n="password">Password</label>
+              <button class="text-button" id="forgotPasswordButton" type="button" data-i18n="forgotPassword">Forgot password?</button>
+            </div>
+            <div class="input-wrap">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <rect x="5" y="10" width="14" height="10" rx="2"/>
+                <path d="M8 10V7a4 4 0 0 1 8 0v3"/>
+              </svg>
+              <input id="password" name="password" type="password" autocomplete="current-password" placeholder="••••••••" minlength="8" required aria-describedby="passwordError">
+              <button class="password-toggle" id="passwordToggle" type="button" aria-label="Show password">
+                <svg class="eye-open" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"/>
+                  <circle cx="12" cy="12" r="2.6"/>
+                </svg>
+                <svg class="eye-closed" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="m3 3 18 18M10.6 6.1A10.8 10.8 0 0 1 12 6c6 0 9.5 6 9.5 6a15.4 15.4 0 0 1-2.1 2.7M6.2 6.2C3.8 8 2.5 12 2.5 12s3.5 6 9.5 6c1.2 0 2.3-.2 3.3-.6M9.9 9.9a3 3 0 0 0 4.2 4.2"/>
+                </svg>
+              </button>
+            </div>
+            <small class="field-error" id="passwordError" aria-live="polite"></small>
+          </div>
+
+          <label class="checkbox-row">
+            <input id="rememberEmail" name="rememberEmail" type="checkbox">
+            <span class="checkbox-control" aria-hidden="true">
+              <svg viewBox="0 0 16 16"><path d="m3 8 3 3 7-7"/></svg>
+            </span>
+            <span data-i18n="rememberEmail">Remember my email</span>
+          </label>
+
+          <button class="primary-button" id="signInButton" type="submit">
+            <span data-i18n="signIn">Sign in</span>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 5 7 7-7 7"/></svg>
+          </button>
+        </form>
+
+        <button class="install-button" id="installButton" type="button" hidden>
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12 3v12m0 0 4-4m-4 4-4-4M5 20h14"/>
+          </svg>
+          <span data-i18n="installApp">Install NASNA on this device</span>
+        </button>
+
+        <div class="secure-note">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12 3 5 6v5c0 4.8 2.9 8.2 7 10 4.1-1.8 7-5.2 7-10V6l-7-3Z"/>
+            <path d="m9.5 12 1.7 1.7 3.5-3.7"/>
+          </svg>
+          <span data-i18n="secureNote">Protected access for authorized company users</span>
+        </div>
+      </div>
+
+      <div class="toast" id="toast" role="status" aria-live="polite" aria-atomic="true">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="12" cy="12" r="9"/>
+          <path d="M12 8v4m0 4h.01"/>
+        </svg>
+        <span id="toastMessage"></span>
+      </div>
+    </section>
+  </main>
+
+  <script src="app.js" defer></script>
+</body>
+</html>
