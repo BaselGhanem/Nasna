@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">NASNA brand mark</title>
+  <desc id="desc">A connected N symbol representing people on one platform.</desc>
+  <rect width="512" height="512" rx="128" fill="#099999"/>
+  <path d="M142 365V147L370 365V147" fill="none" stroke="#FFFFFF" stroke-width="52" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="142" cy="147" r="38" fill="#FFFFFF"/>
+  <circle cx="370" cy="147" r="38" fill="#FFFFFF"/>
+  <circle cx="370" cy="365" r="38" fill="#FFFFFF"/>
+</svg>
