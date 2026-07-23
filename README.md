@@ -1,6 +1,8 @@
-# NASNA | ناسنا
+<p align="center">
+  <img src="assets/brand/nasna-logo.svg" alt="NASNA People Management Platform" width="720">
+</p>
 
-> **Your People. One Platform.**
+<p align="center"><strong>Your People. One Platform.</strong></p>
 
 NASNA is a modern People Management Platform built for companies that want a clear, connected, and human-centered way to manage their workforce.
 
@@ -43,6 +45,12 @@ The visual identity is being established before the first functional module is i
 ## Security Principle
 
 No real employee data, credentials, private keys, or Firebase service-account files may be committed to this public repository.
+
+## Documentation
+
+- [Brand guide](docs/BRAND.md)
+- [Primary logo](assets/brand/nasna-logo.svg)
+- [Brand mark](assets/brand/nasna-mark.svg)
 
 ---
 
