@@ -28,9 +28,11 @@ NASNA will be delivered progressively as independent but connected modules:
 
 ## Current Stage
 
-**Stage 01 — Brand foundation**
+**Stage 02 — Responsive sign-in experience**
 
-The visual identity is being established before the first functional module is implemented.
+The bilingual sign-in interface is live, responsive across mobile and desktop, and prepared as an installable PWA. Firebase Authentication will be connected in the next stage.
+
+**Live application:** https://baselghanem.github.io/Nasna/
 
 ## Technology Direction
 
