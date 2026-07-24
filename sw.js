@@ -1,4 +1,4 @@
-const cacheName = `nasna-shell-v9`;
+const cacheName = `nasna-shell-v10`;
 const shellFiles = [
   `./`,
   `./index.html`,
@@ -7,7 +7,7 @@ const shellFiles = [
   `./firebase-config.js?v=20260725.3`,
   `./firestore-config.js?v=20260725.3`,
   `./dashboard.html`,
-  `./dashboard.css`,
+  `./dashboard.css?v=20260725.6`,
   `./dashboard.js?v=20260725.3`,
   `./organization.html`,
   `./organization.css?v=20260725.3`,
