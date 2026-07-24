@@ -14,15 +14,15 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Almarai:wght@400;700;800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="dashboard.css">
+  <link rel="stylesheet" href="dashboard.css?v=20260725.6">
 </head>
-<body>
-  <div class="auth-loader" id="authLoader" role="status" aria-live="polite" hidden>
+<body class="is-checking-auth">
+  <div class="auth-loader" id="authLoader" role="status" aria-live="polite">
     <img src="assets/brand/nasna-mark.svg" width="56" height="56" alt="">
     <span data-i18n="checkingSession">Checking your secure session…</span>
   </div>
 
-  <div class="workspace" id="workspace">
+  <div class="workspace" id="workspace" hidden>
     <header class="topbar">
       <a class="dashboard-brand" href="dashboard.html" aria-label="NASNA workspace">
         <img src="assets/brand/nasna-mark.svg" width="42" height="42" alt="">
