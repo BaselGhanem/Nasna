@@ -36,25 +36,28 @@ The authenticated workspace now includes multi-company Firestore architecture, c
 
 ## Firestore activation
 
-The Firebase project must contain a `(default)` Firestore database before Stage 04 can store data.
+Stage 04 uses the existing named Firestore database:
 
-1. Create Firestore in Production mode.
-2. From the repository root, authenticate Firebase CLI.
-3. Publish the included rules:
+`ai-studio-2f881b3f-5867-4dfd-b360-c85f26c6ded4`
+
+The legacy project data is left untouched. NASNA stores its data only in collections prefixed with `nasna_`.
+
+1. From the repository root, authenticate Firebase CLI.
+2. Publish the included rules to the named database:
 
 ```bash
-firebase deploy --only firestore:rules
+firebase deploy --only firestore:ai-studio-2f881b3f-5867-4dfd-b360-c85f26c6ded4
 ```
 
-The deployment target is defined in `.firebaserc`, and `firebase.json` points to `firestore.rules`.
+The Firebase project is defined in `.firebaserc`. `firebase.json` binds `firestore.rules` to the named database.
 
 ## Data architecture
 
 ```text
-users/{uid}
-companies/{companyId}
-companies/{companyId}/members/{uid}
-companies/{companyId}/auditLogs/{logId}
+nasna_users/{uid}
+nasna_companies/{companyId}
+nasna_companies/{companyId}/members/{uid}
+nasna_companies/{companyId}/auditLogs/{logId}
 ```
 
 ## Access roles
