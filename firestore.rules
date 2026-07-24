@@ -7,11 +7,11 @@ service cloud.firestore {
     }
 
     function memberPath(companyId, uid) {
-      return /databases/$(database)/documents/companies/$(companyId)/members/$(uid);
+      return /databases/$(database)/documents/nasna_companies/$(companyId)/members/$(uid);
     }
 
     function companyPath(companyId) {
-      return /databases/$(database)/documents/companies/$(companyId);
+      return /databases/$(database)/documents/nasna_companies/$(companyId);
     }
 
     function member(companyId) {
@@ -54,7 +54,7 @@ service cloud.firestore {
         && request.resource.data.status in ['active', 'disabled'];
     }
 
-    match /users/{uid} {
+    match /nasna_users/{uid} {
       allow get: if signedIn()
         && (
           request.auth.uid == uid
@@ -93,7 +93,7 @@ service cloud.firestore {
       allow delete: if false;
     }
 
-    match /companies/{companyId} {
+    match /nasna_companies/{companyId} {
       allow get: if activeMember(companyId);
       allow list: if false;
 
