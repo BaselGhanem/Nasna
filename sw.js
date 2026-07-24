@@ -1,4 +1,4 @@
-const cacheName = `nasna-shell-v3`;
+const cacheName = `nasna-shell-v4`;
 const shellFiles = [
   `./`,
   `./index.html`,
