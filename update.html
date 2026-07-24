@@ -71,6 +71,24 @@
       animation: loading 1s ease-in-out infinite alternate;
     }
 
+    .open-button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 48px;
+      margin-top: 24px;
+      padding: 0 24px;
+      border-radius: 14px;
+      background: #099999;
+      color: #ffffff;
+      font-weight: 700;
+      text-decoration: none;
+    }
+
+    .open-button[hidden] {
+      display: none;
+    }
+
     @keyframes loading {
       to {
         transform: translateX(-120%);
@@ -84,10 +102,20 @@
     <h1>جارٍ تحديث ناسنا</h1>
     <p id="status">يتم حذف نسخة الموقع القديمة بأمان…</p>
     <div class="progress" aria-hidden="true"></div>
+    <a
+      class="open-button"
+      id="openButton"
+      href="./?updated=20260725.5"
+      target="_blank"
+      rel="noopener"
+      hidden
+    >فتح النسخة الجديدة</a>
   </main>
 
   <script>
     const statusElement = document.querySelector(`#status`);
+    const openButton = document.querySelector(`#openButton`);
+    const progressElement = document.querySelector(`.progress`);
 
     const refreshNasna = async () => {
       try {
@@ -105,10 +133,9 @@
           );
         }
 
-        statusElement.textContent = `اكتمل التحديث. جارٍ فتح النسخة الجديدة…`;
-        window.setTimeout(() => {
-          window.location.replace(`./?updated=20260725.4`);
-        }, 700);
+        statusElement.textContent = `اكتمل التحديث. اضغط الزر لفتح ناسنا في تبويب جديد، ثم أغلق هذا التبويب القديم.`;
+        progressElement.hidden = true;
+        openButton.hidden = false;
       } catch (error) {
         console.error(`NASNA update cleanup failed.`, error);
         statusElement.textContent = `تعذر إكمال التحديث التلقائي. أغلق المتصفح وافتح الموقع من جديد.`;
