@@ -6,7 +6,7 @@ import {
   setPersistence,
   signInWithEmailAndPassword
 } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-auth.js";
-import { auth } from "./firebase-config.js?v=20260725.2";
+import { auth } from "./firebase-config.js?v=20260725.3";
 
 const translations = {
   en: {
@@ -297,7 +297,7 @@ const handleSubmit = async event => {
 
     showToast(`signInSuccess`, `success`);
     window.setTimeout(() => {
-      window.location.replace(`dashboard.html?v=20260725.2`);
+      window.location.replace(`dashboard.html?v=20260725.3`);
     }, 500);
   } catch (error) {
     console.error(`NASNA authentication error.`, error);
@@ -342,10 +342,11 @@ const registerServiceWorker = async () => {
   if (!(`serviceWorker` in navigator)) return;
 
   try {
-    await navigator.serviceWorker.register(`./sw.js`, {
+    const registration = await navigator.serviceWorker.register(`./sw.js`, {
       scope: `./`,
       updateViaCache: `none`
     });
+    await registration.update();
   } catch (error) {
     console.warn(`NASNA service worker registration failed.`, error);
   }
@@ -417,6 +418,6 @@ registerServiceWorker();
 
 onAuthStateChanged(auth, user => {
   if (user) {
-    window.location.replace(`dashboard.html?v=20260725.2`);
+    window.location.replace(`dashboard.html?v=20260725.3`);
   }
 });
