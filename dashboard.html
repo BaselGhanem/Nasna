@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#099999">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="NASNA">
+  <title>Workspace | NASNA</title>
+  <link rel="icon" href="assets/brand/nasna-mark.svg" type="image/svg+xml">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Almarai:wght@400;700;800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="dashboard.css">
+</head>
+<body class="is-checking-auth">
+  <div class="auth-loader" id="authLoader" role="status" aria-live="polite">
+    <img src="assets/brand/nasna-mark.svg" width="56" height="56" alt="">
+    <span data-i18n="checkingSession">Checking your secure session…</span>
+  </div>
+
+  <div class="workspace" id="workspace" hidden>
+    <header class="topbar">
+      <a class="dashboard-brand" href="dashboard.html" aria-label="NASNA workspace">
+        <img src="assets/brand/nasna-mark.svg" width="42" height="42" alt="">
+        <span data-i18n="brandName">NASNA</span>
+      </a>
+
+      <div class="topbar-actions">
+        <button class="language-switch" id="dashboardLanguageButton" type="button">
+          <span id="dashboardLanguageLabel">العربية</span>
+        </button>
+
+        <div class="user-menu">
+          <span class="user-avatar" id="userAvatar" aria-hidden="true">U</span>
+          <div class="user-details">
+            <strong data-i18n="signedInUser">Signed-in user</strong>
+            <span id="userEmail"></span>
+          </div>
+        </div>
+
+        <button class="logout-button" id="logoutButton" type="button">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M10 5H5v14h5M14 8l4 4-4 4m4-4H9"/>
+          </svg>
+          <span data-i18n="signOut">Sign out</span>
+        </button>
+      </div>
+    </header>
+
+    <main class="dashboard-main">
+      <section class="welcome-section">
+        <div>
+          <p class="section-eyebrow" data-i18n="secureWorkspace">Secure workspace</p>
+          <h1 data-i18n="welcomeTitle">Welcome to NASNA</h1>
+          <p data-i18n="welcomeCopy">Your account is connected and Firebase Authentication is active.</p>
+        </div>
+        <div class="status-pill">
+          <span aria-hidden="true"></span>
+          <strong data-i18n="accountActive">Account active</strong>
+        </div>
+      </section>
+
+      <section class="module-grid" aria-labelledby="modulesHeading">
+        <div class="section-heading">
+          <div>
+            <p class="section-eyebrow" data-i18n="platformRoadmap">Platform roadmap</p>
+            <h2 id="modulesHeading" data-i18n="modulesHeading">NASNA modules</h2>
+          </div>
+          <span class="stage-badge" data-i18n="stage">Stage 03</span>
+        </div>
+
+        <article class="module-card module-card--current">
+          <div class="module-icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="9" cy="8" r="3"/>
+              <path d="M3.5 19v-2.5A4.5 4.5 0 0 1 8 12h2a4.5 4.5 0 0 1 4.5 4.5V19M16 8h5M18.5 5.5v5"/>
+            </svg>
+          </div>
+          <div>
+            <span class="module-status" data-i18n="nextModule">Next module</span>
+            <h3>NASNA Core</h3>
+            <p data-i18n="coreDescription">People records, organizational structure, roles, and documents.</p>
+          </div>
+        </article>
+
+        <article class="module-card">
+          <div class="module-icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="12" cy="12" r="8"/>
+              <path d="M12 7v5l3 2"/>
+            </svg>
+          </div>
+          <div>
+            <span class="module-status" data-i18n="planned">Planned</span>
+            <h3>NASNA Time</h3>
+            <p data-i18n="timeDescription">Attendance, shifts, leave, and working-time controls.</p>
+          </div>
+        </article>
+
+        <article class="module-card">
+          <div class="module-icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M4 19V5h16v14zM8 15l3-3 2 2 4-5"/>
+            </svg>
+          </div>
+          <div>
+            <span class="module-status" data-i18n="planned">Planned</span>
+            <h3>NASNA Insights</h3>
+            <p data-i18n="insightsDescription">People analytics, workforce indicators, and executive dashboards.</p>
+          </div>
+        </article>
+      </section>
+
+      <section class="security-card">
+        <div class="security-icon">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12 3 5 6v5c0 4.8 2.9 8.2 7 10 4.1-1.8 7-5.2 7-10V6l-7-3Z"/>
+            <path d="m9.5 12 1.7 1.7 3.5-3.7"/>
+          </svg>
+        </div>
+        <div>
+          <strong data-i18n="securityTitle">Authentication protected</strong>
+          <p data-i18n="securityCopy">This page is only available while a valid Firebase session is active.</p>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div class="dashboard-toast" id="dashboardToast" role="status" aria-live="polite">
+    <span id="dashboardToastMessage"></span>
+  </div>
+
+  <script type="module" src="dashboard.js"></script>
+</body>
+</html>

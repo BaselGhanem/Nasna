@@ -1,9 +1,13 @@
-const cacheName = `nasna-shell-v2`;
+const cacheName = `nasna-shell-v3`;
 const shellFiles = [
   `./`,
   `./index.html`,
   `./styles.css`,
   `./app.js`,
+  `./firebase-config.js`,
+  `./dashboard.html`,
+  `./dashboard.css`,
+  `./dashboard.js`,
   `./manifest.webmanifest`,
   `./assets/brand/nasna-mark.svg`,
   `./assets/brand/nasna-logo.svg`,

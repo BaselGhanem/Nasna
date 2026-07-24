@@ -673,6 +673,36 @@ html[lang="ar"] input[type="email"] {
   transform: translateY(-1px);
 }
 
+.primary-button:disabled {
+  cursor: wait;
+  opacity: 0.82;
+  transform: none;
+}
+
+.button-spinner {
+  display: none;
+  width: 19px;
+  height: 19px;
+  border: 2px solid rgba(255, 255, 255, 0.38);
+  border-block-start-color: #ffffff;
+  border-radius: 50%;
+  animation: button-spin 700ms linear infinite;
+}
+
+.primary-button.is-loading .button-spinner {
+  display: block;
+}
+
+.primary-button.is-loading > svg {
+  display: none;
+}
+
+@keyframes button-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .primary-button:active,
 .install-button:active {
   transform: translateY(1px);
@@ -768,6 +798,14 @@ html[dir="rtl"] .primary-button svg {
   stroke-width: 1.8;
   stroke-linecap: round;
   stroke-linejoin: round;
+}
+
+.toast.is-error svg {
+  stroke: var(--danger);
+}
+
+.toast.is-success svg {
+  stroke: #168765;
 }
 
 .toast span {

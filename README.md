@@ -28,9 +28,9 @@ NASNA will be delivered progressively as independent but connected modules:
 
 ## Current Stage
 
-**Stage 02 — Responsive sign-in experience**
+**Stage 03 — Firebase Authentication**
 
-The bilingual sign-in interface is live, responsive across mobile and desktop, and prepared as an installable PWA. Firebase Authentication will be connected in the next stage.
+The bilingual sign-in experience is connected to Firebase Authentication with session persistence, password recovery, protected routing, sign-out, and an authenticated workspace shell.
 
 **Live application:** https://baselghanem.github.io/Nasna/
 
