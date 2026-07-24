@@ -1,6 +1,5 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-app.js";
 import { getAuth } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-auth.js";
-import { initializeFirestore } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-firestore.js";
 
 const firebaseConfig = Object.freeze({
   apiKey: `AIzaSyDP6FlbjAeUqut_79qW0T3rPSvfsjPdHfA`,
@@ -13,13 +12,5 @@ const firebaseConfig = Object.freeze({
 
 const firebaseApp = initializeApp(firebaseConfig);
 const auth = getAuth(firebaseApp);
-const firestoreDatabaseId = `ai-studio-2f881b3f-5867-4dfd-b360-c85f26c6ded4`;
-const db = initializeFirestore(
-  firebaseApp,
-  {
-    experimentalForceLongPolling: true
-  },
-  firestoreDatabaseId
-);
 
-export { auth, db, firebaseApp, firebaseConfig, firestoreDatabaseId };
+export { auth, firebaseApp, firebaseConfig };
