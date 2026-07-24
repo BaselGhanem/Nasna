@@ -21,6 +21,7 @@ The brand mark combines:
 - Three connected points representing employees, managers, and the organization.
 - One rounded container representing a unified platform.
 - Rounded geometry representing accessibility and human-centered workflows.
+- A dedicated Arabic wordmark built with a Thuluth-influenced calligraphic style and converted to vector paths for consistent rendering.
 
 ## 3. Color System
 
@@ -66,7 +67,8 @@ Arabic and English should not be mixed within the same text run when direction h
 
 ## 6. Logo Usage
 
-- Use the horizontal logo in login screens, reports, and navigation headers.
+- Use the horizontal English logo in LTR interfaces.
+- Use the Arabic logo in RTL Arabic interfaces, Arabic reports, and localized brand material.
 - Use the square mark for favicon, mobile launcher, and compact sidebar states.
 - Preserve clear space equal to one-quarter of the mark width.
 - Do not recolor the mark with bright or neon colors.
@@ -86,5 +88,9 @@ Arabic and English should not be mixed within the same text run when direction h
 
 ## 8. Repository Assets
 
-- `assets/brand/nasna-logo.svg` — primary horizontal logo.
+- `assets/brand/nasna-logo.svg` — primary English horizontal logo.
+- `assets/brand/nasna-logo-ar.svg` — Arabic calligraphic horizontal logo.
 - `assets/brand/nasna-mark.svg` — square brand mark.
+
+- `assets/fonts/Katibeh-NASNA.ttf` — Arabic brand-name font subset.
+- `assets/fonts/Katibeh-OFL.txt` — SIL Open Font License for Katibeh.

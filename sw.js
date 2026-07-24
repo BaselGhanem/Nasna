@@ -1,4 +1,4 @@
-const cacheName = `nasna-shell-v1`;
+const cacheName = `nasna-shell-v2`;
 const shellFiles = [
   `./`,
   `./index.html`,
@@ -7,6 +7,8 @@ const shellFiles = [
   `./manifest.webmanifest`,
   `./assets/brand/nasna-mark.svg`,
   `./assets/brand/nasna-logo.svg`,
+  `./assets/brand/nasna-logo-ar.svg`,
+  `./assets/fonts/Katibeh-NASNA.ttf`,
   `./assets/icons/icon-192.png`,
   `./assets/icons/icon-512.png`,
   `./assets/icons/icon-maskable-512.png`

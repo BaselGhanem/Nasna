@@ -1,6 +1,7 @@
 const translations = {
   en: {
     pageTitle: `Sign in | NASNA`,
+    brandName: `NASNA`,
     platform: `People Management Platform`,
     brandHeading: `Your people.<br>One connected platform.`,
     brandCopy: `Bring employee records, time, performance, and insights together in one clear workspace.`,
@@ -35,6 +36,7 @@ const translations = {
   },
   ar: {
     pageTitle: `تسجيل الدخول | ناسنا`,
+    brandName: `ناسنا`,
     platform: `منصة إدارة الأفراد`,
     brandHeading: `ناسك.<br>كلهم بمنصة واحدة.`,
     brandCopy: `اجمع بيانات الموظفين والدوام والأداء والتحليلات في مساحة عمل واضحة ومتكاملة.`,

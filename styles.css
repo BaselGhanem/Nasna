@@ -1,3 +1,11 @@
+@font-face {
+  font-family: "Katibeh NASNA";
+  src: url("assets/fonts/Katibeh-NASNA.ttf") format("truetype");
+  font-display: swap;
+  font-style: normal;
+  font-weight: 400;
+}
+
 :root {
   color-scheme: light;
   --teal: #099999;
@@ -151,6 +159,14 @@ button {
   display: block;
   border-radius: 13px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.16);
+}
+
+html[lang="ar"] .brand-lockup > span {
+  font-family: "Katibeh NASNA", var(--font-ar);
+  font-size: 37px;
+  font-weight: 400;
+  line-height: 1;
+  letter-spacing: 0;
 }
 
 .language-button {
@@ -826,6 +842,10 @@ html[dir="rtl"] .primary-button svg {
     color: var(--ink);
     font-size: 20px;
     letter-spacing: 3px;
+  }
+
+  html[lang="ar"] .brand-lockup--mobile > span {
+    font-size: 34px;
   }
 
   .brand-lockup--mobile img {

@@ -52,6 +52,7 @@ No real employee data, credentials, private keys, or Firebase service-account fi
 
 - [Brand guide](docs/BRAND.md)
 - [Primary logo](assets/brand/nasna-logo.svg)
+- [Arabic logo](assets/brand/nasna-logo-ar.svg)
 - [Brand mark](assets/brand/nasna-mark.svg)
 
 ---
