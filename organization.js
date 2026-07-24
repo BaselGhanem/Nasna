@@ -24,7 +24,7 @@ import {
   auth,
   db,
   firebaseConfig
-} from "./firebase-config.js?v=20260724.4";
+} from "./firebase-config.js?v=20260725.1";
 
 const translations = {
   en: {
@@ -205,7 +205,7 @@ const translations = {
   }
 };
 
-const version = `20260724.4`;
+const version = `20260725.1`;
 const languageKey = `nasna-language`;
 const roleValues = [`super_admin`, `hr_admin`, `manager`, `employee`];
 const adminRoles = new Set([`super_admin`, `hr_admin`]);
@@ -405,17 +405,17 @@ const handleCreateCompany = async event => {
   setButtonLoading(elements.createCompanyButton, true);
 
   try {
-    const existingUser = await getDoc(doc(db, `users`, state.user.uid));
+    const existingUser = await getDoc(doc(db, `nasna_users`, state.user.uid));
     if (existingUser.exists() && existingUser.data().activeCompanyId) {
       await loadAccountState();
       return;
     }
 
-    const companyRef = doc(collection(db, `companies`));
+    const companyRef = doc(collection(db, `nasna_companies`));
     const companyId = companyRef.id;
-    const memberRef = doc(db, `companies`, companyId, `members`, state.user.uid);
-    const userRef = doc(db, `users`, state.user.uid);
-    const auditRef = doc(collection(db, `companies`, companyId, `auditLogs`));
+    const memberRef = doc(db, `nasna_companies`, companyId, `members`, state.user.uid);
+    const userRef = doc(db, `nasna_users`, state.user.uid);
+    const auditRef = doc(collection(db, `nasna_companies`, companyId, `auditLogs`));
     const batch = writeBatch(db);
 
     state.companyId = companyId;
@@ -552,7 +552,7 @@ const renderMembers = () => {
 };
 
 const loadMembers = async () => {
-  const snapshot = await getDocs(collection(db, `companies`, state.companyId, `members`));
+  const snapshot = await getDocs(collection(db, `nasna_companies`, state.companyId, `members`));
   state.members = snapshot.docs
     .map(memberDoc => memberDoc.data())
     .sort((a, b) => {
@@ -564,8 +564,8 @@ const loadMembers = async () => {
 };
 
 const loadCompany = async companyId => {
-  const companyRef = doc(db, `companies`, companyId);
-  const membershipRef = doc(db, `companies`, companyId, `members`, state.user.uid);
+  const companyRef = doc(db, `nasna_companies`, companyId);
+  const membershipRef = doc(db, `nasna_companies`, companyId, `members`, state.user.uid);
   const [companySnapshot, membershipSnapshot] = await Promise.all([
     getDoc(companyRef),
     getDoc(membershipRef)
@@ -593,7 +593,7 @@ const loadAccountState = async () => {
   hideAllStates();
 
   try {
-    const profileSnapshot = await getDoc(doc(db, `users`, state.user.uid));
+    const profileSnapshot = await getDoc(doc(db, `nasna_users`, state.user.uid));
 
     if (!profileSnapshot.exists() || !profileSnapshot.data().activeCompanyId) {
       state.userProfile = null;
@@ -670,9 +670,9 @@ const handleCreateUser = async event => {
     );
 
     const newUid = createdCredential.user.uid;
-    const memberRef = doc(db, `companies`, state.companyId, `members`, newUid);
-    const userRef = doc(db, `users`, newUid);
-    const auditRef = doc(collection(db, `companies`, state.companyId, `auditLogs`));
+    const memberRef = doc(db, `nasna_companies`, state.companyId, `members`, newUid);
+    const userRef = doc(db, `nasna_users`, newUid);
+    const auditRef = doc(collection(db, `nasna_companies`, state.companyId, `auditLogs`));
     const batch = writeBatch(db);
 
     batch.set(memberRef, {
@@ -735,8 +735,8 @@ const updateMember = async (memberId, updates, action) => {
     return;
   }
 
-  const memberRef = doc(db, `companies`, state.companyId, `members`, memberId);
-  const auditRef = doc(collection(db, `companies`, state.companyId, `auditLogs`));
+  const memberRef = doc(db, `nasna_companies`, state.companyId, `members`, memberId);
+  const auditRef = doc(collection(db, `nasna_companies`, state.companyId, `auditLogs`));
   const batch = writeBatch(db);
 
   batch.update(memberRef, {
