@@ -48,6 +48,10 @@ button {
   font: inherit;
 }
 
+[hidden] {
+  display: none !important;
+}
+
 .auth-loader {
   position: fixed;
   z-index: 50;
