@@ -1,0 +1,303 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#099999">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="NASNA">
+  <title>Company & Access | NASNA</title>
+  <link rel="icon" href="assets/brand/nasna-mark.svg" type="image/svg+xml">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Almarai:wght@400;700;800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="organization.css?v=20260724.4">
+</head>
+<body class="is-checking-auth">
+  <div class="page-loader" id="pageLoader" role="status" aria-live="polite">
+    <img src="assets/brand/nasna-mark.svg" width="56" height="56" alt="">
+    <span data-i18n="checkingAccess">Checking your access…</span>
+  </div>
+
+  <div class="app-shell" id="appShell" hidden>
+    <header class="topbar">
+      <a class="brand" href="dashboard.html?v=20260724.4" aria-label="NASNA dashboard">
+        <img src="assets/brand/nasna-mark.svg" width="42" height="42" alt="">
+        <span data-i18n="brandName">NASNA</span>
+      </a>
+
+      <nav class="topbar-actions" aria-label="Workspace actions">
+        <a class="dashboard-link" href="dashboard.html?v=20260724.4">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11 12 4l8 7v9h-5v-6H9v6H4z"/></svg>
+          <span data-i18n="dashboard">Dashboard</span>
+        </a>
+        <button class="language-button" id="languageButton" type="button">
+          <span id="languageLabel">العربية</span>
+        </button>
+        <button class="logout-button" id="logoutButton" type="button">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 5H5v14h5M14 8l4 4-4 4m4-4H9"/></svg>
+          <span data-i18n="signOut">Sign out</span>
+        </button>
+      </nav>
+    </header>
+
+    <main class="main-content">
+      <section class="page-heading">
+        <div>
+          <p class="eyebrow" data-i18n="stageLabel">Stage 04 · Foundation</p>
+          <h1 data-i18n="pageTitle">Company & access management</h1>
+          <p data-i18n="pageDescription">Set up the company workspace and control who can access it.</p>
+        </div>
+        <div class="account-chip">
+          <span class="account-avatar" id="accountAvatar">U</span>
+          <span>
+            <small data-i18n="signedInAs">Signed in as</small>
+            <strong id="accountEmail"></strong>
+          </span>
+        </div>
+      </section>
+
+      <section class="system-state state-card state-card--error" id="databaseRequired" hidden>
+        <div class="state-icon">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 2.8 20h18.4L12 3Zm0 6v5m0 3h.01"/></svg>
+        </div>
+        <div>
+          <h2 data-i18n="databaseRequiredTitle">Firestore setup required</h2>
+          <p data-i18n="databaseRequiredCopy">The application is ready, but the Firestore database has not been created in this Firebase project yet.</p>
+          <ol>
+            <li data-i18n="databaseStepOne">Open Firebase Console → Firestore Database.</li>
+            <li data-i18n="databaseStepTwo">Create the database in Production mode and choose a nearby region.</li>
+            <li data-i18n="databaseStepThree">Publish the firestore.rules file from the GitHub repository.</li>
+          </ol>
+        </div>
+      </section>
+
+      <section class="system-state state-card state-card--error" id="permissionRequired" hidden>
+        <div class="state-icon">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 5 6v5c0 4.8 2.9 8.2 7 10 4.1-1.8 7-5.2 7-10V6l-7-3ZM9 12h6"/></svg>
+        </div>
+        <div>
+          <h2 data-i18n="permissionTitle">Firestore rules are not active</h2>
+          <p data-i18n="permissionCopy">Publish the repository’s firestore.rules file, then reload this page.</p>
+        </div>
+      </section>
+
+      <section class="setup-layout" id="companySetup" hidden>
+        <aside class="setup-summary">
+          <span class="step-number">01</span>
+          <p class="eyebrow" data-i18n="firstWorkspace">First workspace</p>
+          <h2 data-i18n="createCompanyTitle">Create your company</h2>
+          <p data-i18n="createCompanyCopy">This account becomes the company owner and Super Admin. You can add the HR team afterward.</p>
+          <ul>
+            <li data-i18n="benefitIsolation">Company data is isolated from every other tenant.</li>
+            <li data-i18n="benefitRoles">Roles are enforced by Firestore Security Rules.</li>
+            <li data-i18n="benefitAudit">Sensitive changes create audit records.</li>
+          </ul>
+        </aside>
+
+        <form class="form-card" id="companyForm" novalidate>
+          <div class="form-section">
+            <div class="form-section__heading">
+              <span>01</span>
+              <div>
+                <h3 data-i18n="companyIdentity">Company identity</h3>
+                <p data-i18n="companyIdentityCopy">Official names used across employee records and reports.</p>
+              </div>
+            </div>
+            <div class="form-grid">
+              <label class="field">
+                <span data-i18n="companyNameEn">Company name in English</span>
+                <input id="companyNameEn" type="text" autocomplete="organization" maxlength="100" required>
+                <small class="field-error" data-error-for="companyNameEn"></small>
+              </label>
+              <label class="field">
+                <span data-i18n="companyNameAr">Company name in Arabic</span>
+                <input id="companyNameAr" type="text" dir="rtl" maxlength="100" required>
+                <small class="field-error" data-error-for="companyNameAr"></small>
+              </label>
+              <label class="field">
+                <span data-i18n="taxNumber">Tax number</span>
+                <input id="taxNumber" type="text" inputmode="numeric" maxlength="30">
+              </label>
+              <label class="field">
+                <span data-i18n="ownerName">Your full name</span>
+                <input id="ownerName" type="text" autocomplete="name" maxlength="100" required>
+                <small class="field-error" data-error-for="ownerName"></small>
+              </label>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <div class="form-section__heading">
+              <span>02</span>
+              <div>
+                <h3 data-i18n="regionalSettings">Regional settings</h3>
+                <p data-i18n="regionalSettingsCopy">Defaults used by future payroll, attendance, and reporting modules.</p>
+              </div>
+            </div>
+            <div class="form-grid form-grid--three">
+              <label class="field">
+                <span data-i18n="country">Country</span>
+                <select id="country" required>
+                  <option value="JO">Jordan</option>
+                </select>
+              </label>
+              <label class="field">
+                <span data-i18n="currency">Currency</span>
+                <select id="currency" required>
+                  <option value="JOD">JOD — Jordanian Dinar</option>
+                </select>
+              </label>
+              <label class="field">
+                <span data-i18n="timezone">Timezone</span>
+                <select id="timezone" required>
+                  <option value="Asia/Amman">Asia/Amman</option>
+                </select>
+              </label>
+            </div>
+          </div>
+
+          <div class="form-actions">
+            <p data-i18n="ownerNotice">Your account will be permanently registered as the workspace owner.</p>
+            <button class="primary-button" id="createCompanyButton" type="submit">
+              <span data-i18n="createWorkspace">Create workspace</span>
+              <span class="button-spinner" aria-hidden="true"></span>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 5 7 7-7 7"/></svg>
+            </button>
+          </div>
+        </form>
+      </section>
+
+      <section class="company-workspace" id="companyWorkspace" hidden>
+        <div class="company-hero">
+          <div class="company-monogram" id="companyMonogram">N</div>
+          <div class="company-title">
+            <p class="eyebrow" data-i18n="activeWorkspace">Active workspace</p>
+            <h2 id="companyDisplayName"></h2>
+            <p>
+              <span id="companySecondaryName"></span>
+              <span aria-hidden="true">·</span>
+              <span id="companyRegion"></span>
+            </p>
+          </div>
+          <div class="role-badge">
+            <small data-i18n="yourRole">Your role</small>
+            <strong id="currentRole"></strong>
+          </div>
+        </div>
+
+        <div class="stats-grid">
+          <article class="stat-card">
+            <span data-i18n="totalUsers">Total users</span>
+            <strong id="totalUsers">0</strong>
+            <small data-i18n="workspaceMembers">Workspace members</small>
+          </article>
+          <article class="stat-card">
+            <span data-i18n="activeUsers">Active users</span>
+            <strong id="activeUsers">0</strong>
+            <small data-i18n="accessEnabled">Access enabled</small>
+          </article>
+          <article class="stat-card">
+            <span data-i18n="admins">Administrators</span>
+            <strong id="adminUsers">0</strong>
+            <small data-i18n="adminAccess">Super & HR admins</small>
+          </article>
+        </div>
+
+        <div class="workspace-grid">
+          <section class="members-card">
+            <div class="section-header">
+              <div>
+                <p class="eyebrow" data-i18n="accessControl">Access control</p>
+                <h2 data-i18n="peopleWithAccess">People with access</h2>
+              </div>
+              <button class="secondary-button" id="openAddUserButton" type="button">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+                <span data-i18n="addUser">Add user</span>
+              </button>
+            </div>
+            <div class="members-list" id="membersList"></div>
+            <div class="empty-state" id="membersEmpty" hidden>
+              <p data-i18n="noMembers">No users have been added yet.</p>
+            </div>
+          </section>
+
+          <aside class="security-panel">
+            <div class="security-panel__icon">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 5 6v5c0 4.8 2.9 8.2 7 10 4.1-1.8 7-5.2 7-10V6l-7-3Z"/><path d="m9.5 12 1.7 1.7 3.5-3.7"/></svg>
+            </div>
+            <p class="eyebrow" data-i18n="securityRules">Security rules</p>
+            <h2 data-i18n="tenantIsolation">Tenant isolation active</h2>
+            <p data-i18n="tenantIsolationCopy">Users can only read the company where they hold an active membership.</p>
+            <div class="security-checks">
+              <span data-i18n="checkCompany">Company-scoped access</span>
+              <span data-i18n="checkRoles">Server-enforced roles</span>
+              <span data-i18n="checkAudit">Immutable audit logs</span>
+            </div>
+          </aside>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div class="modal" id="addUserModal" hidden>
+    <button class="modal-backdrop" id="modalBackdrop" type="button" aria-label="Close"></button>
+    <section class="modal-card" role="dialog" aria-modal="true" aria-labelledby="addUserTitle">
+      <div class="modal-header">
+        <div>
+          <p class="eyebrow" data-i18n="accessControl">Access control</p>
+          <h2 id="addUserTitle" data-i18n="addUserTitle">Create a company user</h2>
+        </div>
+        <button class="icon-button" id="closeAddUserButton" type="button" aria-label="Close">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>
+        </button>
+      </div>
+
+      <form id="addUserForm" novalidate>
+        <label class="field">
+          <span data-i18n="fullName">Full name</span>
+          <input id="newUserName" type="text" autocomplete="off" maxlength="100" required>
+          <small class="field-error" data-error-for="newUserName"></small>
+        </label>
+        <label class="field">
+          <span data-i18n="workEmail">Work email</span>
+          <input id="newUserEmail" type="email" inputmode="email" autocomplete="off" required>
+          <small class="field-error" data-error-for="newUserEmail"></small>
+        </label>
+        <label class="field">
+          <span data-i18n="role">Role</span>
+          <select id="newUserRole" required>
+            <option value="employee" data-i18n="employee">Employee</option>
+            <option value="manager" data-i18n="manager">Manager</option>
+            <option value="hr_admin" data-i18n="hrAdmin">HR Admin</option>
+            <option value="super_admin" data-i18n="superAdmin">Super Admin</option>
+          </select>
+        </label>
+        <label class="field">
+          <span data-i18n="temporaryPassword">Temporary password</span>
+          <input id="newUserPassword" type="password" autocomplete="new-password" minlength="8" required>
+          <small data-i18n="temporaryPasswordHelp">At least 8 characters. Ask the user to reset it after first sign-in.</small>
+          <small class="field-error" data-error-for="newUserPassword"></small>
+        </label>
+
+        <div class="modal-actions">
+          <button class="ghost-button" id="cancelAddUserButton" type="button" data-i18n="cancel">Cancel</button>
+          <button class="primary-button" id="createUserButton" type="submit">
+            <span data-i18n="createUser">Create user</span>
+            <span class="button-spinner" aria-hidden="true"></span>
+          </button>
+        </div>
+      </form>
+    </section>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite" aria-atomic="true">
+    <span id="toastMessage"></span>
+  </div>
+
+  <script type="module" src="organization.js?v=20260724.4"></script>
+</body>
+</html>
