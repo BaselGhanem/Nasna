@@ -6,7 +6,7 @@ import {
   setPersistence,
   signInWithEmailAndPassword
 } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-auth.js";
-import { auth } from "./firebase-config.js?v=20260724.3";
+import { auth } from "./firebase-config.js?v=20260724.4";
 
 const translations = {
   en: {
@@ -297,7 +297,7 @@ const handleSubmit = async event => {
 
     showToast(`signInSuccess`, `success`);
     window.setTimeout(() => {
-      window.location.replace(`dashboard.html?v=20260724.3`);
+      window.location.replace(`dashboard.html?v=20260724.4`);
     }, 500);
   } catch (error) {
     console.error(`NASNA authentication error.`, error);
@@ -402,6 +402,11 @@ window.addEventListener(`appinstalled`, () => {
 restorePreferences();
 setLanguage(currentLanguage);
 
+const pageError = new URLSearchParams(window.location.search).get(`error`);
+if (pageError === `access-disabled`) {
+  showToast(`accountDisabled`, `error`);
+}
+
 const isStandalone = window.matchMedia(`(display-mode: standalone)`).matches || window.navigator.standalone === true;
 const isMobileDevice = /android|iphone|ipad|ipod/i.test(navigator.userAgent);
 if (isMobileDevice && !isStandalone) {
@@ -412,6 +417,6 @@ registerServiceWorker();
 
 onAuthStateChanged(auth, user => {
   if (user) {
-    window.location.replace(`dashboard.html?v=20260724.3`);
+    window.location.replace(`dashboard.html?v=20260724.4`);
   }
 });
