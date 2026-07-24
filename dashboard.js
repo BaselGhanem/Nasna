@@ -1,6 +1,5 @@
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-auth.js";
-import { doc, getDoc } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-firestore.js";
-import { auth, db } from "./firebase-config.js?v=20260725.2";
+import { auth } from "./firebase-config.js?v=20260725.3";
 
 const translations = {
   en: {
@@ -87,7 +86,6 @@ const safeStorage = {
 
 let currentLanguage = safeStorage.get(storageKey) || (navigator.language.startsWith(`ar`) ? `ar` : `en`);
 let toastTimer = null;
-const accessCheckTimeoutMs = 10000;
 
 const translate = key => translations[currentLanguage][key] || key;
 
@@ -128,50 +126,12 @@ const revealWorkspace = user => {
   document.body.classList.remove(`is-checking-auth`);
 };
 
-const withTimeout = (promise, timeoutMs) => Promise.race([
-  promise,
-  new Promise((_, reject) => {
-    window.setTimeout(() => {
-      reject(Object.assign(new Error(`Firestore access check timed out.`), {
-        code: `deadline-exceeded`
-      }));
-    }, timeoutMs);
-  })
-]);
-
-const verifyWorkspaceAccess = async user => {
-  try {
-    const profileSnapshot = await withTimeout(
-      getDoc(doc(db, `nasna_users`, user.uid)),
-      accessCheckTimeoutMs
-    );
-    if (!profileSnapshot.exists() || !profileSnapshot.data().activeCompanyId) return true;
-
-    const companyId = profileSnapshot.data().activeCompanyId;
-    const membershipSnapshot = await withTimeout(
-      getDoc(doc(db, `nasna_companies`, companyId, `members`, user.uid)),
-      accessCheckTimeoutMs
-    );
-    return membershipSnapshot.exists() && membershipSnapshot.data().status === `active`;
-  } catch (error) {
-    const code = error?.code || ``;
-    const message = String(error?.message || ``).toLowerCase();
-    const databaseMissing = code === `failed-precondition`
-      || code === `not-found`
-      || message.includes(`database (default) does not exist`);
-
-    if (databaseMissing || code === `deadline-exceeded` || code === `permission-denied`) return true;
-    console.error(`NASNA workspace access verification error.`, error);
-    return true;
-  }
-};
-
 const handleSignOut = async () => {
   elements.logoutButton.disabled = true;
 
   try {
     await signOut(auth);
-    window.location.replace(`./?v=20260725.2`);
+    window.location.replace(`./?v=20260725.3`);
   } catch (error) {
     console.error(`NASNA sign-out error.`, error);
     showToast(`signOutError`);
@@ -188,17 +148,9 @@ setLanguage(currentLanguage);
 
 onAuthStateChanged(auth, user => {
   if (!user) {
-    window.location.replace(`./?v=20260725.2`);
+    window.location.replace(`./?v=20260725.3`);
     return;
   }
 
   revealWorkspace(user);
-
-  verifyWorkspaceAccess(user).then(hasAccess => {
-    if (!hasAccess) {
-      signOut(auth).finally(() => {
-        window.location.replace(`./?v=20260725.2&error=access-disabled`);
-      });
-    }
-  });
 });
