@@ -13,6 +13,7 @@ const firebaseConfig = Object.freeze({
 
 const firebaseApp = initializeApp(firebaseConfig);
 const auth = getAuth(firebaseApp);
-const db = getFirestore(firebaseApp);
+const firestoreDatabaseId = `ai-studio-2f881b3f-5867-4dfd-b360-c85f26c6ded4`;
+const db = getFirestore(firebaseApp, firestoreDatabaseId);
 
-export { auth, db, firebaseApp, firebaseConfig };
+export { auth, db, firebaseApp, firebaseConfig, firestoreDatabaseId };
