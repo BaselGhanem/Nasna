@@ -16,13 +16,13 @@
   <link href="https://fonts.googleapis.com/css2?family=Almarai:wght@400;700;800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="dashboard.css">
 </head>
-<body class="is-checking-auth">
-  <div class="auth-loader" id="authLoader" role="status" aria-live="polite">
+<body>
+  <div class="auth-loader" id="authLoader" role="status" aria-live="polite" hidden>
     <img src="assets/brand/nasna-mark.svg" width="56" height="56" alt="">
     <span data-i18n="checkingSession">Checking your secure session…</span>
   </div>
 
-  <div class="workspace" id="workspace" hidden>
+  <div class="workspace" id="workspace">
     <header class="topbar">
       <a class="dashboard-brand" href="dashboard.html" aria-label="NASNA workspace">
         <img src="assets/brand/nasna-mark.svg" width="42" height="42" alt="">
