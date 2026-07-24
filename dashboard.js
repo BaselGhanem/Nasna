@@ -1,5 +1,6 @@
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-auth.js";
-import { auth } from "./firebase-config.js?v=20260724.3";
+import { doc, getDoc } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-firestore.js";
+import { auth, db } from "./firebase-config.js?v=20260724.4";
 
 const translations = {
   en: {
@@ -13,8 +14,10 @@ const translations = {
     accountActive: `Account active`,
     platformRoadmap: `Platform roadmap`,
     modulesHeading: `NASNA modules`,
-    stage: `Stage 03`,
-    nextModule: `Next module`,
+    stage: `Stage 04`,
+    currentModule: `Current module`,
+    companyAccessTitle: `Company & Access`,
+    companyAccessDescription: `Company setup, tenant isolation, users, roles, and audit controls.`,
     planned: `Planned`,
     coreDescription: `People records, organizational structure, roles, and documents.`,
     timeDescription: `Attendance, shifts, leave, and working-time controls.`,
@@ -35,8 +38,10 @@ const translations = {
     accountActive: `الحساب فعّال`,
     platformRoadmap: `خارطة طريق المنصة`,
     modulesHeading: `أنظمة ناسنا`,
-    stage: `المرحلة 03`,
-    nextModule: `النظام التالي`,
+    stage: `المرحلة 04`,
+    currentModule: `النظام الحالي`,
+    companyAccessTitle: `الشركة والصلاحيات`,
+    companyAccessDescription: `إعداد الشركة وعزل البيانات والمستخدمون والصلاحيات وسجل العمليات.`,
     planned: `مخطط`,
     coreDescription: `بيانات الموظفين والهيكل التنظيمي والصلاحيات والمستندات.`,
     timeDescription: `الحضور والمناوبات والإجازات وضوابط وقت العمل.`,
@@ -122,12 +127,35 @@ const revealWorkspace = user => {
   document.body.classList.remove(`is-checking-auth`);
 };
 
+const verifyWorkspaceAccess = async user => {
+  try {
+    const profileSnapshot = await getDoc(doc(db, `users`, user.uid));
+    if (!profileSnapshot.exists() || !profileSnapshot.data().activeCompanyId) return true;
+
+    const companyId = profileSnapshot.data().activeCompanyId;
+    const membershipSnapshot = await getDoc(
+      doc(db, `companies`, companyId, `members`, user.uid)
+    );
+    return membershipSnapshot.exists() && membershipSnapshot.data().status === `active`;
+  } catch (error) {
+    const code = error?.code || ``;
+    const message = String(error?.message || ``).toLowerCase();
+    const databaseMissing = code === `failed-precondition`
+      || code === `not-found`
+      || message.includes(`database (default) does not exist`);
+
+    if (databaseMissing) return true;
+    console.error(`NASNA workspace access verification error.`, error);
+    return false;
+  }
+};
+
 const handleSignOut = async () => {
   elements.logoutButton.disabled = true;
 
   try {
     await signOut(auth);
-    window.location.replace(`./?v=20260724.3`);
+    window.location.replace(`./?v=20260724.4`);
   } catch (error) {
     console.error(`NASNA sign-out error.`, error);
     showToast(`signOutError`);
@@ -144,9 +172,17 @@ setLanguage(currentLanguage);
 
 onAuthStateChanged(auth, user => {
   if (!user) {
-    window.location.replace(`./?v=20260724.3`);
+    window.location.replace(`./?v=20260724.4`);
     return;
   }
 
-  revealWorkspace(user);
+  verifyWorkspaceAccess(user).then(hasAccess => {
+    if (!hasAccess) {
+      signOut(auth).finally(() => {
+        window.location.replace(`./?v=20260724.4&error=access-disabled`);
+      });
+      return;
+    }
+    revealWorkspace(user);
+  });
 });
