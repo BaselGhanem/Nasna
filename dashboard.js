@@ -1,5 +1,5 @@
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-auth.js";
-import { auth } from "./firebase-config.js?v=20260725.3";
+import { auth } from "./firebase-config.js?v=20260725.6";
 
 const translations = {
   en: {
@@ -131,7 +131,7 @@ const handleSignOut = async () => {
 
   try {
     await signOut(auth);
-    window.location.replace(`./?v=20260725.3`);
+    window.location.replace(`./?v=20260725.6`);
   } catch (error) {
     console.error(`NASNA sign-out error.`, error);
     showToast(`signOutError`);
@@ -146,9 +146,20 @@ elements.logoutButton.addEventListener(`click`, handleSignOut);
 
 setLanguage(currentLanguage);
 
+const sessionFallbackTimer = window.setTimeout(() => {
+  if (auth.currentUser) {
+    revealWorkspace(auth.currentUser);
+    return;
+  }
+
+  window.location.replace(`./?v=20260725.6`);
+}, 8000);
+
 onAuthStateChanged(auth, user => {
+  window.clearTimeout(sessionFallbackTimer);
+
   if (!user) {
-    window.location.replace(`./?v=20260725.3`);
+    window.location.replace(`./?v=20260725.6`);
     return;
   }
 
