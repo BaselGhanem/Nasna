@@ -1,6 +1,6 @@
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-auth.js";
 import { doc, getDoc } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-firestore.js";
-import { auth, db } from "./firebase-config.js?v=20260724.4";
+import { auth, db } from "./firebase-config.js?v=20260725.1";
 
 const translations = {
   en: {
@@ -129,12 +129,12 @@ const revealWorkspace = user => {
 
 const verifyWorkspaceAccess = async user => {
   try {
-    const profileSnapshot = await getDoc(doc(db, `users`, user.uid));
+    const profileSnapshot = await getDoc(doc(db, `nasna_users`, user.uid));
     if (!profileSnapshot.exists() || !profileSnapshot.data().activeCompanyId) return true;
 
     const companyId = profileSnapshot.data().activeCompanyId;
     const membershipSnapshot = await getDoc(
-      doc(db, `companies`, companyId, `members`, user.uid)
+      doc(db, `nasna_companies`, companyId, `members`, user.uid)
     );
     return membershipSnapshot.exists() && membershipSnapshot.data().status === `active`;
   } catch (error) {
@@ -155,7 +155,7 @@ const handleSignOut = async () => {
 
   try {
     await signOut(auth);
-    window.location.replace(`./?v=20260724.4`);
+    window.location.replace(`./?v=20260725.1`);
   } catch (error) {
     console.error(`NASNA sign-out error.`, error);
     showToast(`signOutError`);
@@ -172,14 +172,14 @@ setLanguage(currentLanguage);
 
 onAuthStateChanged(auth, user => {
   if (!user) {
-    window.location.replace(`./?v=20260724.4`);
+    window.location.replace(`./?v=20260725.1`);
     return;
   }
 
   verifyWorkspaceAccess(user).then(hasAccess => {
     if (!hasAccess) {
       signOut(auth).finally(() => {
-        window.location.replace(`./?v=20260724.4&error=access-disabled`);
+        window.location.replace(`./?v=20260725.1&error=access-disabled`);
       });
       return;
     }
