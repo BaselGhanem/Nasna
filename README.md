@@ -28,11 +28,41 @@ NASNA will be delivered progressively as independent but connected modules:
 
 ## Current Stage
 
-**Stage 03 — Firebase Authentication**
+**Stage 04 — Company & Access Management**
 
-The bilingual sign-in experience is connected to Firebase Authentication with session persistence, password recovery, protected routing, sign-out, and an authenticated workspace shell.
+The authenticated workspace now includes multi-company Firestore architecture, company onboarding, tenant isolation, four access roles, user provisioning, account disabling, and immutable audit logs.
 
 **Live application:** https://baselghanem.github.io/Nasna/
+
+## Firestore activation
+
+The Firebase project must contain a `(default)` Firestore database before Stage 04 can store data.
+
+1. Create Firestore in Production mode.
+2. From the repository root, authenticate Firebase CLI.
+3. Publish the included rules:
+
+```bash
+firebase deploy --only firestore:rules
+```
+
+The deployment target is defined in `.firebaserc`, and `firebase.json` points to `firestore.rules`.
+
+## Data architecture
+
+```text
+users/{uid}
+companies/{companyId}
+companies/{companyId}/members/{uid}
+companies/{companyId}/auditLogs/{logId}
+```
+
+## Access roles
+
+- `super_admin`
+- `hr_admin`
+- `manager`
+- `employee`
 
 ## Technology Direction
 
@@ -46,14 +76,7 @@ The bilingual sign-in experience is connected to Firebase Authentication with se
 
 ## Security Principle
 
-No real employee data, credentials, private keys, or Firebase service-account files may be committed to this public repository.
-
-## Documentation
-
-- [Brand guide](docs/BRAND.md)
-- [Primary logo](assets/brand/nasna-logo.svg)
-- [Arabic logo](assets/brand/nasna-logo-ar.svg)
-- [Brand mark](assets/brand/nasna-mark.svg)
+No real employee data, passwords, private keys, or Firebase service-account files may be committed to this public repository. Access control is enforced by Firestore Security Rules, not by UI visibility alone.
 
 ---
 
