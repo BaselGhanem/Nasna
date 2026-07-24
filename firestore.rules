@@ -1,0 +1,174 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function memberPath(companyId, uid) {
+      return /databases/$(database)/documents/companies/$(companyId)/members/$(uid);
+    }
+
+    function companyPath(companyId) {
+      return /databases/$(database)/documents/companies/$(companyId);
+    }
+
+    function member(companyId) {
+      return get(memberPath(companyId, request.auth.uid));
+    }
+
+    function memberAfter(companyId, uid) {
+      return getAfter(memberPath(companyId, uid));
+    }
+
+    function activeMember(companyId) {
+      return signedIn()
+        && exists(memberPath(companyId, request.auth.uid))
+        && member(companyId).data.status == 'active';
+    }
+
+    function activeMemberAfter(companyId) {
+      return signedIn()
+        && memberAfter(companyId, request.auth.uid).data.status == 'active';
+    }
+
+    function roleIn(companyId, roles) {
+      return activeMember(companyId)
+        && member(companyId).data.role in roles;
+    }
+
+    function admin(companyId) {
+      return roleIn(companyId, ['super_admin', 'hr_admin']);
+    }
+
+    function superAdmin(companyId) {
+      return roleIn(companyId, ['super_admin']);
+    }
+
+    function validUserShape(uid) {
+      return request.resource.data.uid == uid
+        && request.resource.data.email is string
+        && request.resource.data.displayName is string
+        && request.resource.data.activeCompanyId is string
+        && request.resource.data.status in ['active', 'disabled'];
+    }
+
+    match /users/{uid} {
+      allow get: if signedIn()
+        && (
+          request.auth.uid == uid
+          || (
+            resource.data.activeCompanyId is string
+            && admin(resource.data.activeCompanyId)
+          )
+        );
+
+      allow list: if false;
+
+      allow create: if signedIn()
+        && validUserShape(uid)
+        && (
+          (
+            request.auth.uid == uid
+            && request.resource.data.email == request.auth.token.email
+            && activeMemberAfter(request.resource.data.activeCompanyId)
+          )
+          || admin(request.resource.data.activeCompanyId)
+        );
+
+      allow update: if signedIn()
+        && validUserShape(uid)
+        && request.resource.data.uid == resource.data.uid
+        && request.resource.data.email == resource.data.email
+        && (
+          (
+            request.auth.uid == uid
+            && request.resource.data.status == resource.data.status
+            && activeMemberAfter(request.resource.data.activeCompanyId)
+          )
+          || admin(resource.data.activeCompanyId)
+        );
+
+      allow delete: if false;
+    }
+
+    match /companies/{companyId} {
+      allow get: if activeMember(companyId);
+      allow list: if false;
+
+      allow create: if signedIn()
+        && request.resource.data.ownerId == request.auth.uid
+        && request.resource.data.status == 'active'
+        && memberAfter(companyId, request.auth.uid).data.role == 'super_admin'
+        && memberAfter(companyId, request.auth.uid).data.status == 'active';
+
+      allow update: if superAdmin(companyId)
+        && request.resource.data.ownerId == resource.data.ownerId
+        && request.resource.data.status in ['active', 'suspended'];
+
+      allow delete: if false;
+
+      match /members/{memberId} {
+        allow read: if activeMember(companyId);
+
+        allow create: if signedIn()
+          && request.resource.data.uid == memberId
+          && request.resource.data.companyId == companyId
+          && request.resource.data.role in ['super_admin', 'hr_admin', 'manager', 'employee']
+          && request.resource.data.status in ['active', 'disabled']
+          && (
+            (
+              request.auth.uid == memberId
+              && getAfter(companyPath(companyId)).data.ownerId == request.auth.uid
+              && request.resource.data.role == 'super_admin'
+              && request.resource.data.status == 'active'
+            )
+            || (
+              admin(companyId)
+              && (
+                request.resource.data.role != 'super_admin'
+                || superAdmin(companyId)
+              )
+            )
+          );
+
+        allow update: if admin(companyId)
+          && request.resource.data.uid == resource.data.uid
+          && request.resource.data.companyId == resource.data.companyId
+          && request.resource.data.email == resource.data.email
+          && request.resource.data.role in ['super_admin', 'hr_admin', 'manager', 'employee']
+          && request.resource.data.status in ['active', 'disabled']
+          && (
+            superAdmin(companyId)
+            || (
+              resource.data.role != 'super_admin'
+              && request.resource.data.role != 'super_admin'
+            )
+          )
+          && (
+            memberId != get(companyPath(companyId)).data.ownerId
+            || (
+              request.resource.data.role == 'super_admin'
+              && request.resource.data.status == 'active'
+            )
+          );
+
+        allow delete: if superAdmin(companyId)
+          && memberId != get(companyPath(companyId)).data.ownerId;
+      }
+
+      match /auditLogs/{logId} {
+        allow read: if admin(companyId);
+
+        allow create: if signedIn()
+          && activeMemberAfter(companyId)
+          && request.resource.data.companyId == companyId
+          && request.resource.data.actorId == request.auth.uid
+          && request.resource.data.action is string;
+
+        allow update, delete: if false;
+      }
+    }
+  }
+}
