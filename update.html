@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#099999">
+  <meta name="robots" content="noindex, nofollow">
+  <title>تحديث ناسنا</title>
+  <link rel="icon" href="assets/brand/nasna-mark.svg" type="image/svg+xml">
+  <style>
+    :root {
+      color-scheme: light;
+      font-family: Arial, sans-serif;
+      background: #f3fafa;
+      color: #163737;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      min-height: 100vh;
+      margin: 0;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+    }
+
+    main {
+      width: min(440px, 100%);
+      padding: 36px 28px;
+      border: 1px solid rgba(9, 153, 153, 0.18);
+      border-radius: 24px;
+      background: #ffffff;
+      box-shadow: 0 24px 60px rgba(19, 73, 73, 0.12);
+      text-align: center;
+    }
+
+    img {
+      width: 72px;
+      height: 72px;
+    }
+
+    h1 {
+      margin: 22px 0 10px;
+      font-size: 24px;
+    }
+
+    p {
+      margin: 0;
+      color: #607878;
+      line-height: 1.8;
+    }
+
+    .progress {
+      height: 6px;
+      margin-top: 26px;
+      overflow: hidden;
+      border-radius: 999px;
+      background: #dceeee;
+    }
+
+    .progress::after {
+      content: "";
+      display: block;
+      width: 45%;
+      height: 100%;
+      border-radius: inherit;
+      background: #099999;
+      animation: loading 1s ease-in-out infinite alternate;
+    }
+
+    @keyframes loading {
+      to {
+        transform: translateX(-120%);
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <img src="assets/brand/nasna-mark.svg" alt="NASNA">
+    <h1>جارٍ تحديث ناسنا</h1>
+    <p id="status">يتم حذف نسخة الموقع القديمة بأمان…</p>
+    <div class="progress" aria-hidden="true"></div>
+  </main>
+
+  <script>
+    const statusElement = document.querySelector(`#status`);
+
+    const refreshNasna = async () => {
+      try {
+        if (`serviceWorker` in navigator) {
+          const registrations = await navigator.serviceWorker.getRegistrations();
+          await Promise.all(registrations.map(registration => registration.unregister()));
+        }
+
+        if (`caches` in window) {
+          const cacheNames = await caches.keys();
+          await Promise.all(
+            cacheNames
+              .filter(cacheName => cacheName.startsWith(`nasna-shell-`))
+              .map(cacheName => caches.delete(cacheName))
+          );
+        }
+
+        statusElement.textContent = `اكتمل التحديث. جارٍ فتح النسخة الجديدة…`;
+        window.setTimeout(() => {
+          window.location.replace(`./?updated=20260725.4`);
+        }, 700);
+      } catch (error) {
+        console.error(`NASNA update cleanup failed.`, error);
+        statusElement.textContent = `تعذر إكمال التحديث التلقائي. أغلق المتصفح وافتح الموقع من جديد.`;
+      }
+    };
+
+    refreshNasna();
+  </script>
+</body>
+</html>
