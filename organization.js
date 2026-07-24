@@ -24,7 +24,7 @@ import {
   auth,
   db,
   firebaseConfig
-} from "./firebase-config.js?v=20260725.1";
+} from "./firebase-config.js?v=20260725.2";
 
 const translations = {
   en: {
@@ -205,7 +205,7 @@ const translations = {
   }
 };
 
-const version = `20260725.1`;
+const version = `20260725.2`;
 const languageKey = `nasna-language`;
 const roleValues = [`super_admin`, `hr_admin`, `manager`, `employee`];
 const adminRoles = new Set([`super_admin`, `hr_admin`]);
