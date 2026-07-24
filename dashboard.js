@@ -1,5 +1,5 @@
-import { onAuthStateChanged, signOut } from `https://www.gstatic.com/firebasejs/12.16.0/firebase-auth.js`;
-import { auth } from `./firebase-config.js`;
+import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-auth.js";
+import { auth } from "./firebase-config.js";
 
 const translations = {
   en: {
