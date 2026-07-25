@@ -18,6 +18,26 @@ service cloud.firestore {
       return /databases/$(database)/documents/nasna_companies/$(companyId)/branches/$(branchId);
     }
 
+    function locationPath(companyId, locationId) {
+      return /databases/$(database)/documents/nasna_companies/$(companyId)/locations/$(locationId);
+    }
+
+    function departmentPath(companyId, departmentId) {
+      return /databases/$(database)/documents/nasna_companies/$(companyId)/departments/$(departmentId);
+    }
+
+    function teamPath(companyId, teamId) {
+      return /databases/$(database)/documents/nasna_companies/$(companyId)/teams/$(teamId);
+    }
+
+    function jobGradePath(companyId, gradeId) {
+      return /databases/$(database)/documents/nasna_companies/$(companyId)/jobGrades/$(gradeId);
+    }
+
+    function jobTitlePath(companyId, jobTitleId) {
+      return /databases/$(database)/documents/nasna_companies/$(companyId)/jobTitles/$(jobTitleId);
+    }
+
     function member(companyId) {
       return get(memberPath(companyId, request.auth.uid));
     }
@@ -160,6 +180,267 @@ service cloud.firestore {
         && request.resource.data.createdBy is string
         && request.resource.data.updatedAt is timestamp
         && request.resource.data.updatedBy is string;
+    }
+
+    function validDepartmentShape(companyId, departmentId) {
+      return request.resource.data.keys().hasAll([
+          'id',
+          'companyId',
+          'code',
+          'branchId',
+          'nameEn',
+          'nameAr',
+          'status',
+          'createdAt',
+          'createdBy',
+          'updatedAt',
+          'updatedBy'
+        ])
+        && request.resource.data.keys().hasOnly([
+          'id',
+          'companyId',
+          'code',
+          'branchId',
+          'nameEn',
+          'nameAr',
+          'status',
+          'createdAt',
+          'createdBy',
+          'updatedAt',
+          'updatedBy'
+        ])
+        && request.resource.data.id == departmentId
+        && request.resource.data.companyId == companyId
+        && request.resource.data.code == departmentId
+        && validStructureCode(request.resource.data.code)
+        && validStructureCode(request.resource.data.branchId)
+        && validStructureName(request.resource.data.nameEn)
+        && validStructureName(request.resource.data.nameAr)
+        && request.resource.data.status in ['active', 'inactive']
+        && request.resource.data.createdAt is timestamp
+        && request.resource.data.createdBy is string
+        && request.resource.data.updatedAt is timestamp
+        && request.resource.data.updatedBy is string;
+    }
+
+    function validTeamShape(companyId, teamId) {
+      return request.resource.data.keys().hasAll([
+          'id',
+          'companyId',
+          'code',
+          'departmentId',
+          'nameEn',
+          'nameAr',
+          'status',
+          'createdAt',
+          'createdBy',
+          'updatedAt',
+          'updatedBy'
+        ])
+        && request.resource.data.keys().hasOnly([
+          'id',
+          'companyId',
+          'code',
+          'departmentId',
+          'nameEn',
+          'nameAr',
+          'status',
+          'createdAt',
+          'createdBy',
+          'updatedAt',
+          'updatedBy'
+        ])
+        && request.resource.data.id == teamId
+        && request.resource.data.companyId == companyId
+        && request.resource.data.code == teamId
+        && validStructureCode(request.resource.data.code)
+        && validStructureCode(request.resource.data.departmentId)
+        && validStructureName(request.resource.data.nameEn)
+        && validStructureName(request.resource.data.nameAr)
+        && request.resource.data.status in ['active', 'inactive']
+        && request.resource.data.createdAt is timestamp
+        && request.resource.data.createdBy is string
+        && request.resource.data.updatedAt is timestamp
+        && request.resource.data.updatedBy is string;
+    }
+
+    function validJobGradeShape(companyId, gradeId) {
+      return request.resource.data.keys().hasAll([
+          'id',
+          'companyId',
+          'code',
+          'nameEn',
+          'nameAr',
+          'level',
+          'status',
+          'createdAt',
+          'createdBy',
+          'updatedAt',
+          'updatedBy'
+        ])
+        && request.resource.data.keys().hasOnly([
+          'id',
+          'companyId',
+          'code',
+          'nameEn',
+          'nameAr',
+          'level',
+          'status',
+          'createdAt',
+          'createdBy',
+          'updatedAt',
+          'updatedBy'
+        ])
+        && request.resource.data.id == gradeId
+        && request.resource.data.companyId == companyId
+        && request.resource.data.code == gradeId
+        && validStructureCode(request.resource.data.code)
+        && validStructureName(request.resource.data.nameEn)
+        && validStructureName(request.resource.data.nameAr)
+        && request.resource.data.level is int
+        && request.resource.data.level >= 1
+        && request.resource.data.level <= 100
+        && request.resource.data.status in ['active', 'inactive']
+        && request.resource.data.createdAt is timestamp
+        && request.resource.data.createdBy is string
+        && request.resource.data.updatedAt is timestamp
+        && request.resource.data.updatedBy is string;
+    }
+
+    function validJobTitleShape(companyId, jobTitleId) {
+      return request.resource.data.keys().hasAll([
+          'id',
+          'companyId',
+          'code',
+          'gradeId',
+          'nameEn',
+          'nameAr',
+          'descriptionEn',
+          'descriptionAr',
+          'status',
+          'createdAt',
+          'createdBy',
+          'updatedAt',
+          'updatedBy'
+        ])
+        && request.resource.data.keys().hasOnly([
+          'id',
+          'companyId',
+          'code',
+          'gradeId',
+          'nameEn',
+          'nameAr',
+          'descriptionEn',
+          'descriptionAr',
+          'status',
+          'createdAt',
+          'createdBy',
+          'updatedAt',
+          'updatedBy'
+        ])
+        && request.resource.data.id == jobTitleId
+        && request.resource.data.companyId == companyId
+        && request.resource.data.code == jobTitleId
+        && validStructureCode(request.resource.data.code)
+        && validStructureCode(request.resource.data.gradeId)
+        && validStructureName(request.resource.data.nameEn)
+        && validStructureName(request.resource.data.nameAr)
+        && request.resource.data.descriptionEn is string
+        && request.resource.data.descriptionEn.size() <= 4000
+        && request.resource.data.descriptionAr is string
+        && request.resource.data.descriptionAr.size() <= 4000
+        && request.resource.data.status in ['active', 'inactive']
+        && request.resource.data.createdAt is timestamp
+        && request.resource.data.createdBy is string
+        && request.resource.data.updatedAt is timestamp
+        && request.resource.data.updatedBy is string;
+    }
+
+    function validPositionShape(companyId, positionId) {
+      return request.resource.data.keys().hasAll([
+          'id',
+          'companyId',
+          'code',
+          'jobTitleId',
+          'branchId',
+          'locationId',
+          'departmentId',
+          'teamId',
+          'headcount',
+          'status',
+          'createdAt',
+          'createdBy',
+          'updatedAt',
+          'updatedBy'
+        ])
+        && request.resource.data.keys().hasOnly([
+          'id',
+          'companyId',
+          'code',
+          'jobTitleId',
+          'branchId',
+          'locationId',
+          'departmentId',
+          'teamId',
+          'headcount',
+          'status',
+          'createdAt',
+          'createdBy',
+          'updatedAt',
+          'updatedBy'
+        ])
+        && request.resource.data.id == positionId
+        && request.resource.data.companyId == companyId
+        && request.resource.data.code == positionId
+        && validStructureCode(request.resource.data.code)
+        && validStructureCode(request.resource.data.jobTitleId)
+        && validStructureCode(request.resource.data.branchId)
+        && (
+          request.resource.data.locationId == ''
+          || validStructureCode(request.resource.data.locationId)
+        )
+        && validStructureCode(request.resource.data.departmentId)
+        && (
+          request.resource.data.teamId == ''
+          || validStructureCode(request.resource.data.teamId)
+        )
+        && request.resource.data.headcount is int
+        && request.resource.data.headcount >= 1
+        && request.resource.data.headcount <= 10000
+        && request.resource.data.status in ['active', 'inactive']
+        && request.resource.data.createdAt is timestamp
+        && request.resource.data.createdBy is string
+        && request.resource.data.updatedAt is timestamp
+        && request.resource.data.updatedBy is string;
+    }
+
+    function activePositionRelations(companyId) {
+      let position = request.resource.data;
+      return position.status == 'inactive'
+        || (
+          get(branchPath(companyId, position.branchId)).data.status == 'active'
+          && get(departmentPath(companyId, position.departmentId)).data.status == 'active'
+          && get(departmentPath(companyId, position.departmentId)).data.branchId == position.branchId
+          && get(jobTitlePath(companyId, position.jobTitleId)).data.status == 'active'
+          && get(jobGradePath(
+            companyId,
+            get(jobTitlePath(companyId, position.jobTitleId)).data.gradeId
+          )).data.status == 'active'
+          && (
+            position.locationId == ''
+            || (
+              get(locationPath(companyId, position.locationId)).data.status == 'active'
+              && get(locationPath(companyId, position.locationId)).data.branchId == position.branchId
+            )
+          )
+          && (
+            position.teamId == ''
+            || (
+              get(teamPath(companyId, position.teamId)).data.status == 'active'
+              && get(teamPath(companyId, position.teamId)).data.departmentId == position.departmentId
+            )
+          )
+        );
     }
 
     match /nasna_users/{uid} {
@@ -331,6 +612,195 @@ service cloud.firestore {
             'city',
             'address',
             'timezone',
+            'status',
+            'updatedAt',
+            'updatedBy'
+          ]);
+
+        allow delete: if false;
+      }
+
+      match /departments/{departmentId} {
+        allow read: if activeMember(companyId);
+
+        allow create: if admin(companyId)
+          && validDepartmentShape(companyId, departmentId)
+          && exists(branchPath(companyId, request.resource.data.branchId))
+          && get(branchPath(companyId, request.resource.data.branchId)).data.status == 'active'
+          && request.resource.data.createdAt == request.time
+          && request.resource.data.updatedAt == request.time
+          && request.resource.data.createdBy == request.auth.uid
+          && request.resource.data.updatedBy == request.auth.uid;
+
+        allow update: if admin(companyId)
+          && validDepartmentShape(companyId, departmentId)
+          && request.resource.data.id == resource.data.id
+          && request.resource.data.companyId == resource.data.companyId
+          && request.resource.data.code == resource.data.code
+          && request.resource.data.createdAt == resource.data.createdAt
+          && request.resource.data.createdBy == resource.data.createdBy
+          && request.resource.data.updatedAt == request.time
+          && request.resource.data.updatedBy == request.auth.uid
+          && (
+            request.resource.data.status == 'inactive'
+            || (
+              exists(branchPath(companyId, request.resource.data.branchId))
+              && get(branchPath(companyId, request.resource.data.branchId)).data.status == 'active'
+            )
+          )
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'branchId',
+            'nameEn',
+            'nameAr',
+            'status',
+            'updatedAt',
+            'updatedBy'
+          ]);
+
+        allow delete: if false;
+      }
+
+      match /teams/{teamId} {
+        allow read: if activeMember(companyId);
+
+        allow create: if admin(companyId)
+          && validTeamShape(companyId, teamId)
+          && exists(departmentPath(companyId, request.resource.data.departmentId))
+          && get(departmentPath(companyId, request.resource.data.departmentId)).data.status == 'active'
+          && request.resource.data.createdAt == request.time
+          && request.resource.data.updatedAt == request.time
+          && request.resource.data.createdBy == request.auth.uid
+          && request.resource.data.updatedBy == request.auth.uid;
+
+        allow update: if admin(companyId)
+          && validTeamShape(companyId, teamId)
+          && request.resource.data.id == resource.data.id
+          && request.resource.data.companyId == resource.data.companyId
+          && request.resource.data.code == resource.data.code
+          && request.resource.data.createdAt == resource.data.createdAt
+          && request.resource.data.createdBy == resource.data.createdBy
+          && request.resource.data.updatedAt == request.time
+          && request.resource.data.updatedBy == request.auth.uid
+          && (
+            request.resource.data.status == 'inactive'
+            || (
+              exists(departmentPath(companyId, request.resource.data.departmentId))
+              && get(departmentPath(companyId, request.resource.data.departmentId)).data.status == 'active'
+            )
+          )
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'departmentId',
+            'nameEn',
+            'nameAr',
+            'status',
+            'updatedAt',
+            'updatedBy'
+          ]);
+
+        allow delete: if false;
+      }
+
+      match /jobGrades/{gradeId} {
+        allow read: if activeMember(companyId);
+
+        allow create: if admin(companyId)
+          && validJobGradeShape(companyId, gradeId)
+          && request.resource.data.createdAt == request.time
+          && request.resource.data.updatedAt == request.time
+          && request.resource.data.createdBy == request.auth.uid
+          && request.resource.data.updatedBy == request.auth.uid;
+
+        allow update: if admin(companyId)
+          && validJobGradeShape(companyId, gradeId)
+          && request.resource.data.id == resource.data.id
+          && request.resource.data.companyId == resource.data.companyId
+          && request.resource.data.code == resource.data.code
+          && request.resource.data.createdAt == resource.data.createdAt
+          && request.resource.data.createdBy == resource.data.createdBy
+          && request.resource.data.updatedAt == request.time
+          && request.resource.data.updatedBy == request.auth.uid
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'nameEn',
+            'nameAr',
+            'level',
+            'status',
+            'updatedAt',
+            'updatedBy'
+          ]);
+
+        allow delete: if false;
+      }
+
+      match /jobTitles/{jobTitleId} {
+        allow read: if activeMember(companyId);
+
+        allow create: if admin(companyId)
+          && validJobTitleShape(companyId, jobTitleId)
+          && exists(jobGradePath(companyId, request.resource.data.gradeId))
+          && get(jobGradePath(companyId, request.resource.data.gradeId)).data.status == 'active'
+          && request.resource.data.createdAt == request.time
+          && request.resource.data.updatedAt == request.time
+          && request.resource.data.createdBy == request.auth.uid
+          && request.resource.data.updatedBy == request.auth.uid;
+
+        allow update: if admin(companyId)
+          && validJobTitleShape(companyId, jobTitleId)
+          && request.resource.data.id == resource.data.id
+          && request.resource.data.companyId == resource.data.companyId
+          && request.resource.data.code == resource.data.code
+          && request.resource.data.createdAt == resource.data.createdAt
+          && request.resource.data.createdBy == resource.data.createdBy
+          && request.resource.data.updatedAt == request.time
+          && request.resource.data.updatedBy == request.auth.uid
+          && (
+            request.resource.data.status == 'inactive'
+            || (
+              exists(jobGradePath(companyId, request.resource.data.gradeId))
+              && get(jobGradePath(companyId, request.resource.data.gradeId)).data.status == 'active'
+            )
+          )
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'gradeId',
+            'nameEn',
+            'nameAr',
+            'descriptionEn',
+            'descriptionAr',
+            'status',
+            'updatedAt',
+            'updatedBy'
+          ]);
+
+        allow delete: if false;
+      }
+
+      match /positions/{positionId} {
+        allow read: if activeMember(companyId);
+
+        allow create: if admin(companyId)
+          && validPositionShape(companyId, positionId)
+          && activePositionRelations(companyId)
+          && request.resource.data.createdAt == request.time
+          && request.resource.data.updatedAt == request.time
+          && request.resource.data.createdBy == request.auth.uid
+          && request.resource.data.updatedBy == request.auth.uid;
+
+        allow update: if admin(companyId)
+          && validPositionShape(companyId, positionId)
+          && activePositionRelations(companyId)
+          && request.resource.data.id == resource.data.id
+          && request.resource.data.companyId == resource.data.companyId
+          && request.resource.data.code == resource.data.code
+          && request.resource.data.createdAt == resource.data.createdAt
+          && request.resource.data.createdBy == resource.data.createdBy
+          && request.resource.data.updatedAt == request.time
+          && request.resource.data.updatedBy == request.auth.uid
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'jobTitleId',
+            'branchId',
+            'locationId',
+            'departmentId',
+            'teamId',
+            'headcount',
             'status',
             'updatedAt',
             'updatedBy'

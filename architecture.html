@@ -1,0 +1,487 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#099999">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="NASNA">
+  <title>Organization & Jobs | NASNA</title>
+  <link rel="icon" href="assets/brand/nasna-mark.svg" type="image/svg+xml">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Almarai:wght@400;700;800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="organization.css?v=20260725.8">
+  <link rel="stylesheet" href="structure.css?v=20260725.8">
+  <link rel="stylesheet" href="architecture.css?v=20260725.8">
+</head>
+<body class="is-checking-auth">
+  <div class="page-loader" id="pageLoader" role="status" aria-live="polite">
+    <img src="assets/brand/nasna-mark.svg" width="56" height="56" alt="">
+    <span data-i18n="checkingAccess">Checking your access…</span>
+  </div>
+
+  <div class="app-shell" id="appShell" hidden>
+    <header class="topbar">
+      <a class="brand" href="dashboard.html?v=20260725.8" aria-label="NASNA dashboard">
+        <img src="assets/brand/nasna-mark.svg" width="42" height="42" alt="">
+        <span data-i18n="brandName">NASNA</span>
+      </a>
+
+      <nav class="topbar-actions" aria-label="Workspace actions">
+        <a class="dashboard-link" href="dashboard.html?v=20260725.8">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11 12 4l8 7v9h-5v-6H9v6H4z"/></svg>
+          <span data-i18n="dashboard">Dashboard</span>
+        </a>
+        <a class="dashboard-link" href="structure.html?v=20260725.8">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V8l8-4 8 4v12M8 11h2m4 0h2M8 15h2m4 0h2M3 20h18"/></svg>
+          <span data-i18n="sites">Sites</span>
+        </a>
+        <button class="language-button" id="languageButton" type="button">
+          <span id="languageLabel">العربية</span>
+        </button>
+        <button class="logout-button" id="logoutButton" type="button">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 5H5v14h5M14 8l4 4-4 4m4-4H9"/></svg>
+          <span data-i18n="signOut">Sign out</span>
+        </button>
+      </nav>
+    </header>
+
+    <main class="main-content">
+      <section class="page-heading">
+        <div>
+          <p class="eyebrow" data-i18n="stageLabel">Stages 05 & 06 · NASNA Core</p>
+          <h1 data-i18n="pageTitle">Organization & job architecture</h1>
+          <p data-i18n="pageDescription">Connect departments and teams to a controlled catalog of grades, job titles, and positions.</p>
+        </div>
+        <div class="account-chip">
+          <span class="account-avatar" id="accountAvatar">U</span>
+          <span>
+            <small data-i18n="signedInAs">Signed in as</small>
+            <strong id="accountEmail"></strong>
+          </span>
+        </div>
+      </section>
+
+      <section class="system-state state-card state-card--error" id="systemState" hidden>
+        <div class="state-icon">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 2.8 20h18.4L12 3Zm0 6v5m0 3h.01"/></svg>
+        </div>
+        <div>
+          <h2 id="systemStateTitle"></h2>
+          <p id="systemStateCopy"></p>
+          <button class="state-retry" id="retryButton" type="button" data-i18n="retry">Try again</button>
+        </div>
+      </section>
+
+      <section id="architectureWorkspace" hidden>
+        <div class="structure-context">
+          <div class="context-monogram" id="companyMonogram">N</div>
+          <div>
+            <p class="eyebrow" data-i18n="activeWorkspace">Active workspace</p>
+            <h2 id="companyName"></h2>
+            <p id="companyRegion"></p>
+          </div>
+          <div class="context-role">
+            <small data-i18n="yourRole">Your role</small>
+            <strong id="currentRole"></strong>
+          </div>
+        </div>
+
+        <div class="stats-grid structure-stats architecture-stats">
+          <article class="stat-card">
+            <span data-i18n="activeDepartments">Active departments</span>
+            <strong id="activeDepartments">0</strong>
+            <small data-i18n="departmentCountCopy">Operational departments</small>
+          </article>
+          <article class="stat-card">
+            <span data-i18n="activeTeams">Active teams</span>
+            <strong id="activeTeams">0</strong>
+            <small data-i18n="teamCountCopy">Department teams</small>
+          </article>
+          <article class="stat-card">
+            <span data-i18n="activeJobTitles">Active job titles</span>
+            <strong id="activeJobTitles">0</strong>
+            <small data-i18n="titleCountCopy">Approved job catalog</small>
+          </article>
+          <article class="stat-card">
+            <span data-i18n="activePositions">Active positions</span>
+            <strong id="activePositions">0</strong>
+            <small data-i18n="positionCountCopy">Organizational posts</small>
+          </article>
+        </div>
+
+        <aside class="readonly-banner" id="readOnlyBanner" hidden>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 5 6v5c0 4.8 2.9 8.2 7 10 4.1-1.8 7-5.2 7-10V6l-7-3Z"/><path d="M9 12h6"/></svg>
+          <div>
+            <strong data-i18n="readOnlyTitle">View-only access</strong>
+            <span data-i18n="readOnlyCopy">Only Super Admin and HR Admin can change organization and job architecture.</span>
+          </div>
+        </aside>
+
+        <div class="architecture-tabs" role="tablist" aria-label="Architecture sections">
+          <button class="architecture-tab is-active" id="organizationTab" data-panel="organization" type="button" role="tab" aria-selected="true" aria-controls="organizationPanel">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v5M5 20v-5h14v5M5 15v-3h14v3M8 7h8v5H8z"/></svg>
+            <span data-i18n="organizationTab">Departments & teams</span>
+          </button>
+          <button class="architecture-tab" id="jobsTab" data-panel="jobs" type="button" role="tab" aria-selected="false" aria-controls="jobsPanel">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="7" width="16" height="12" rx="2"/><path d="M9 7V5h6v2M4 12h16M10 12v2h4v-2"/></svg>
+            <span data-i18n="jobsTab">Grades, titles & positions</span>
+          </button>
+        </div>
+
+        <div class="architecture-panel" id="organizationPanel" role="tabpanel" aria-labelledby="organizationTab">
+          <div class="catalog-grid">
+            <section class="directory-card" aria-labelledby="departmentsHeading">
+              <div class="section-header">
+                <div>
+                  <p class="eyebrow" data-i18n="organizationStructure">Organization structure</p>
+                  <h2 id="departmentsHeading" data-i18n="departments">Departments</h2>
+                </div>
+                <button class="secondary-button" id="addDepartmentButton" type="button">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+                  <span data-i18n="addDepartment">Add department</span>
+                </button>
+              </div>
+              <p class="directory-description" data-i18n="departmentsDescription">Business functions linked to one active company branch.</p>
+              <div class="directory-list" id="departmentsList"></div>
+              <div class="empty-state structure-empty" id="departmentsEmpty" hidden>
+                <div class="empty-icon">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V6h16v14M8 10h8M8 14h8M3 20h18"/></svg>
+                </div>
+                <strong data-i18n="noDepartmentsTitle">No departments yet</strong>
+                <p data-i18n="noDepartmentsCopy">Create the first department under an active branch.</p>
+              </div>
+            </section>
+
+            <section class="directory-card" aria-labelledby="teamsHeading">
+              <div class="section-header">
+                <div>
+                  <p class="eyebrow" data-i18n="deliveryUnits">Delivery units</p>
+                  <h2 id="teamsHeading" data-i18n="teams">Teams</h2>
+                </div>
+                <button class="secondary-button" id="addTeamButton" type="button">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+                  <span data-i18n="addTeam">Add team</span>
+                </button>
+              </div>
+              <p class="directory-description" data-i18n="teamsDescription">Working groups linked to one active department.</p>
+              <div class="directory-list" id="teamsList"></div>
+              <div class="empty-state structure-empty" id="teamsEmpty" hidden>
+                <div class="empty-icon">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="8" cy="9" r="3"/><circle cx="17" cy="10" r="2.5"/><path d="M3 20v-2a5 5 0 0 1 10 0v2M14 20v-1.5a4 4 0 0 1 7 0V20"/></svg>
+                </div>
+                <strong data-i18n="noTeamsTitle">No teams yet</strong>
+                <p data-i18n="noTeamsCopy">Teams become available after the first department is created.</p>
+              </div>
+            </section>
+
+            <section class="directory-card directory-card--wide" aria-labelledby="orgChartHeading">
+              <div class="section-header">
+                <div>
+                  <p class="eyebrow" data-i18n="liveHierarchy">Live hierarchy</p>
+                  <h2 id="orgChartHeading" data-i18n="orgChart">Organization chart</h2>
+                </div>
+              </div>
+              <p class="directory-description" data-i18n="orgChartDescription">A branch-to-department-to-team view generated from current records.</p>
+              <div class="org-chart" id="orgChart"></div>
+              <div class="empty-state structure-empty" id="orgChartEmpty" hidden>
+                <strong data-i18n="orgChartEmptyTitle">The chart is waiting for departments</strong>
+                <p data-i18n="orgChartEmptyCopy">Branches already exist; add a department to start the hierarchy.</p>
+              </div>
+            </section>
+          </div>
+        </div>
+
+        <div class="architecture-panel" id="jobsPanel" role="tabpanel" aria-labelledby="jobsTab" hidden>
+          <p class="section-note" data-i18n="managerAssignmentNote">Department manager assignment will be added after employee profiles exist, so managers are linked to real employees rather than login accounts.</p>
+          <div class="catalog-grid catalog-grid--jobs">
+            <section class="directory-card" aria-labelledby="gradesHeading">
+              <div class="section-header">
+                <div>
+                  <p class="eyebrow" data-i18n="jobFramework">Job framework</p>
+                  <h2 id="gradesHeading" data-i18n="grades">Job grades</h2>
+                </div>
+                <button class="secondary-button" id="addGradeButton" type="button">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+                  <span data-i18n="addGrade">Add grade</span>
+                </button>
+              </div>
+              <p class="directory-description" data-i18n="gradesDescription">Ordered levels used to classify job titles consistently.</p>
+              <div class="directory-list" id="gradesList"></div>
+              <div class="empty-state structure-empty" id="gradesEmpty" hidden>
+                <strong data-i18n="noGradesTitle">No job grades yet</strong>
+                <p data-i18n="noGradesCopy">Create a grade before adding job titles.</p>
+              </div>
+            </section>
+
+            <section class="directory-card" aria-labelledby="titlesHeading">
+              <div class="section-header">
+                <div>
+                  <p class="eyebrow" data-i18n="jobCatalog">Job catalog</p>
+                  <h2 id="titlesHeading" data-i18n="jobTitles">Job titles</h2>
+                </div>
+                <button class="secondary-button" id="addTitleButton" type="button">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+                  <span data-i18n="addTitle">Add title</span>
+                </button>
+              </div>
+              <p class="directory-description" data-i18n="titlesDescription">Bilingual titles with a grade and controlled job description.</p>
+              <div class="directory-list" id="titlesList"></div>
+              <div class="empty-state structure-empty" id="titlesEmpty" hidden>
+                <strong data-i18n="noTitlesTitle">No job titles yet</strong>
+                <p data-i18n="noTitlesCopy">Job titles become available after the first grade is created.</p>
+              </div>
+            </section>
+
+            <section class="directory-card positions-card" aria-labelledby="positionsHeading">
+              <div class="section-header">
+                <div>
+                  <p class="eyebrow" data-i18n="approvedPosts">Approved posts</p>
+                  <h2 id="positionsHeading" data-i18n="positions">Positions</h2>
+                </div>
+                <button class="secondary-button" id="addPositionButton" type="button">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+                  <span data-i18n="addPosition">Add position</span>
+                </button>
+              </div>
+              <p class="directory-description" data-i18n="positionsDescription">Actual organizational posts that connect a title to a branch, department, team, and optional work location.</p>
+              <div class="directory-list" id="positionsList"></div>
+              <div class="empty-state structure-empty" id="positionsEmpty" hidden>
+                <strong data-i18n="noPositionsTitle">No positions yet</strong>
+                <p data-i18n="noPositionsCopy">Create the organization structure and a job title before adding a position.</p>
+              </div>
+            </section>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div class="modal" id="departmentModal" hidden>
+    <button class="modal-backdrop" data-close-modal="department" type="button" aria-label="Close"></button>
+    <section class="modal-card modal-card--wide" role="dialog" aria-modal="true" aria-labelledby="departmentModalTitle">
+      <div class="modal-header">
+        <div><p class="eyebrow" data-i18n="organizationStructure">Organization structure</p><h2 id="departmentModalTitle"></h2></div>
+        <button class="icon-button" data-close-modal="department" type="button" aria-label="Close"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button>
+      </div>
+      <form class="structure-form" id="departmentForm" novalidate>
+        <div class="modal-form-grid">
+          <label class="field">
+            <span data-i18n="departmentCode">Department code</span>
+            <input id="departmentCode" type="text" inputmode="latin" autocomplete="off" maxlength="20" spellcheck="false" required>
+            <small data-i18n="codeHelp">2–20 English letters, numbers, or hyphens. The code cannot be changed later.</small>
+            <small class="field-error" data-error-for="departmentCode"></small>
+          </label>
+          <label class="field">
+            <span data-i18n="parentBranch">Parent branch</span>
+            <select id="departmentBranch" required></select>
+            <small class="field-error" data-error-for="departmentBranch"></small>
+          </label>
+          <label class="field">
+            <span data-i18n="nameEn">Name in English</span>
+            <input id="departmentNameEn" type="text" maxlength="100" required>
+            <small class="field-error" data-error-for="departmentNameEn"></small>
+          </label>
+          <label class="field">
+            <span data-i18n="nameAr">Name in Arabic</span>
+            <input id="departmentNameAr" type="text" dir="rtl" maxlength="100" required>
+            <small class="field-error" data-error-for="departmentNameAr"></small>
+          </label>
+        </div>
+        <div class="modal-actions">
+          <button class="ghost-button" data-close-modal="department" type="button" data-i18n="cancel">Cancel</button>
+          <button class="primary-button" id="saveDepartmentButton" type="submit"><span data-i18n="saveDepartment">Save department</span><span class="button-spinner" aria-hidden="true"></span></button>
+        </div>
+      </form>
+    </section>
+  </div>
+
+  <div class="modal" id="teamModal" hidden>
+    <button class="modal-backdrop" data-close-modal="team" type="button" aria-label="Close"></button>
+    <section class="modal-card modal-card--wide" role="dialog" aria-modal="true" aria-labelledby="teamModalTitle">
+      <div class="modal-header">
+        <div><p class="eyebrow" data-i18n="deliveryUnits">Delivery units</p><h2 id="teamModalTitle"></h2></div>
+        <button class="icon-button" data-close-modal="team" type="button" aria-label="Close"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button>
+      </div>
+      <form class="structure-form" id="teamForm" novalidate>
+        <div class="modal-form-grid">
+          <label class="field">
+            <span data-i18n="teamCode">Team code</span>
+            <input id="teamCode" type="text" inputmode="latin" autocomplete="off" maxlength="20" spellcheck="false" required>
+            <small data-i18n="codeHelp">2–20 English letters, numbers, or hyphens. The code cannot be changed later.</small>
+            <small class="field-error" data-error-for="teamCode"></small>
+          </label>
+          <label class="field">
+            <span data-i18n="parentDepartment">Parent department</span>
+            <select id="teamDepartment" required></select>
+            <small class="field-error" data-error-for="teamDepartment"></small>
+          </label>
+          <label class="field">
+            <span data-i18n="nameEn">Name in English</span>
+            <input id="teamNameEn" type="text" maxlength="100" required>
+            <small class="field-error" data-error-for="teamNameEn"></small>
+          </label>
+          <label class="field">
+            <span data-i18n="nameAr">Name in Arabic</span>
+            <input id="teamNameAr" type="text" dir="rtl" maxlength="100" required>
+            <small class="field-error" data-error-for="teamNameAr"></small>
+          </label>
+        </div>
+        <div class="modal-actions">
+          <button class="ghost-button" data-close-modal="team" type="button" data-i18n="cancel">Cancel</button>
+          <button class="primary-button" id="saveTeamButton" type="submit"><span data-i18n="saveTeam">Save team</span><span class="button-spinner" aria-hidden="true"></span></button>
+        </div>
+      </form>
+    </section>
+  </div>
+
+  <div class="modal" id="gradeModal" hidden>
+    <button class="modal-backdrop" data-close-modal="grade" type="button" aria-label="Close"></button>
+    <section class="modal-card modal-card--wide" role="dialog" aria-modal="true" aria-labelledby="gradeModalTitle">
+      <div class="modal-header">
+        <div><p class="eyebrow" data-i18n="jobFramework">Job framework</p><h2 id="gradeModalTitle"></h2></div>
+        <button class="icon-button" data-close-modal="grade" type="button" aria-label="Close"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button>
+      </div>
+      <form class="structure-form" id="gradeForm" novalidate>
+        <div class="modal-form-grid">
+          <label class="field">
+            <span data-i18n="gradeCode">Grade code</span>
+            <input id="gradeCode" type="text" inputmode="latin" autocomplete="off" maxlength="20" spellcheck="false" required>
+            <small data-i18n="codeHelp">2–20 English letters, numbers, or hyphens. The code cannot be changed later.</small>
+            <small class="field-error" data-error-for="gradeCode"></small>
+          </label>
+          <label class="field">
+            <span data-i18n="gradeLevel">Grade level</span>
+            <input id="gradeLevel" type="number" inputmode="numeric" min="1" max="100" required>
+            <small data-i18n="gradeLevelHelp">Use 1 for the first level, then increase upward consistently.</small>
+            <small class="field-error" data-error-for="gradeLevel"></small>
+          </label>
+          <label class="field">
+            <span data-i18n="nameEn">Name in English</span>
+            <input id="gradeNameEn" type="text" maxlength="100" required>
+            <small class="field-error" data-error-for="gradeNameEn"></small>
+          </label>
+          <label class="field">
+            <span data-i18n="nameAr">Name in Arabic</span>
+            <input id="gradeNameAr" type="text" dir="rtl" maxlength="100" required>
+            <small class="field-error" data-error-for="gradeNameAr"></small>
+          </label>
+        </div>
+        <div class="modal-actions">
+          <button class="ghost-button" data-close-modal="grade" type="button" data-i18n="cancel">Cancel</button>
+          <button class="primary-button" id="saveGradeButton" type="submit"><span data-i18n="saveGrade">Save grade</span><span class="button-spinner" aria-hidden="true"></span></button>
+        </div>
+      </form>
+    </section>
+  </div>
+
+  <div class="modal" id="titleModal" hidden>
+    <button class="modal-backdrop" data-close-modal="title" type="button" aria-label="Close"></button>
+    <section class="modal-card modal-card--wide" role="dialog" aria-modal="true" aria-labelledby="titleModalTitle">
+      <div class="modal-header">
+        <div><p class="eyebrow" data-i18n="jobCatalog">Job catalog</p><h2 id="titleModalTitle"></h2></div>
+        <button class="icon-button" data-close-modal="title" type="button" aria-label="Close"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button>
+      </div>
+      <form class="structure-form" id="titleForm" novalidate>
+        <div class="modal-form-grid">
+          <label class="field">
+            <span data-i18n="titleCode">Job title code</span>
+            <input id="titleCode" type="text" inputmode="latin" autocomplete="off" maxlength="20" spellcheck="false" required>
+            <small data-i18n="codeHelp">2–20 English letters, numbers, or hyphens. The code cannot be changed later.</small>
+            <small class="field-error" data-error-for="titleCode"></small>
+          </label>
+          <label class="field">
+            <span data-i18n="jobGrade">Job grade</span>
+            <select id="titleGrade" required></select>
+            <small class="field-error" data-error-for="titleGrade"></small>
+          </label>
+          <label class="field">
+            <span data-i18n="titleEn">Title in English</span>
+            <input id="titleNameEn" type="text" maxlength="100" required>
+            <small class="field-error" data-error-for="titleNameEn"></small>
+          </label>
+          <label class="field">
+            <span data-i18n="titleAr">Title in Arabic</span>
+            <input id="titleNameAr" type="text" dir="rtl" maxlength="100" required>
+            <small class="field-error" data-error-for="titleNameAr"></small>
+          </label>
+          <label class="field">
+            <span data-i18n="descriptionEn">Description in English (optional)</span>
+            <textarea id="titleDescriptionEn" maxlength="4000"></textarea>
+          </label>
+          <label class="field">
+            <span data-i18n="descriptionAr">Description in Arabic (optional)</span>
+            <textarea id="titleDescriptionAr" dir="rtl" maxlength="4000"></textarea>
+          </label>
+        </div>
+        <div class="modal-actions">
+          <button class="ghost-button" data-close-modal="title" type="button" data-i18n="cancel">Cancel</button>
+          <button class="primary-button" id="saveTitleButton" type="submit"><span data-i18n="saveTitle">Save title</span><span class="button-spinner" aria-hidden="true"></span></button>
+        </div>
+      </form>
+    </section>
+  </div>
+
+  <div class="modal" id="positionModal" hidden>
+    <button class="modal-backdrop" data-close-modal="position" type="button" aria-label="Close"></button>
+    <section class="modal-card modal-card--wide" role="dialog" aria-modal="true" aria-labelledby="positionModalTitle">
+      <div class="modal-header">
+        <div><p class="eyebrow" data-i18n="approvedPosts">Approved posts</p><h2 id="positionModalTitle"></h2></div>
+        <button class="icon-button" data-close-modal="position" type="button" aria-label="Close"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button>
+      </div>
+      <form class="structure-form" id="positionForm" novalidate>
+        <div class="modal-form-grid">
+          <label class="field">
+            <span data-i18n="positionCode">Position code</span>
+            <input id="positionCode" type="text" inputmode="latin" autocomplete="off" maxlength="20" spellcheck="false" required>
+            <small data-i18n="codeHelp">2–20 English letters, numbers, or hyphens. The code cannot be changed later.</small>
+            <small class="field-error" data-error-for="positionCode"></small>
+          </label>
+          <label class="field">
+            <span data-i18n="jobTitle">Job title</span>
+            <select id="positionTitle" required></select>
+            <small class="field-error" data-error-for="positionTitle"></small>
+          </label>
+          <label class="field">
+            <span data-i18n="parentBranch">Parent branch</span>
+            <select id="positionBranch" required></select>
+            <small class="field-error" data-error-for="positionBranch"></small>
+          </label>
+          <label class="field">
+            <span data-i18n="department">Department</span>
+            <select id="positionDepartment" required></select>
+            <small class="field-error" data-error-for="positionDepartment"></small>
+          </label>
+          <label class="field">
+            <span data-i18n="teamOptional">Team (optional)</span>
+            <select id="positionTeam"></select>
+          </label>
+          <label class="field">
+            <span data-i18n="locationOptional">Work location (optional)</span>
+            <select id="positionLocation"></select>
+          </label>
+          <label class="field">
+            <span data-i18n="headcount">Approved headcount</span>
+            <input id="positionHeadcount" type="number" inputmode="numeric" min="1" max="10000" value="1" required>
+            <small class="field-error" data-error-for="positionHeadcount"></small>
+          </label>
+        </div>
+        <div class="modal-actions">
+          <button class="ghost-button" data-close-modal="position" type="button" data-i18n="cancel">Cancel</button>
+          <button class="primary-button" id="savePositionButton" type="submit"><span data-i18n="savePosition">Save position</span><span class="button-spinner" aria-hidden="true"></span></button>
+        </div>
+      </form>
+    </section>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite" aria-atomic="true">
+    <span id="toastMessage"></span>
+  </div>
+
+  <script type="module" src="architecture.js?v=20260725.8"></script>
+</body>
+</html>

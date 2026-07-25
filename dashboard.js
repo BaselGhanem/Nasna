@@ -1,5 +1,5 @@
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-auth.js";
-import { auth } from "./firebase-config.js?v=20260725.7";
+import { auth } from "./firebase-config.js?v=20260725.8";
 
 const translations = {
   en: {
@@ -13,13 +13,17 @@ const translations = {
     accountActive: `Account active`,
     platformRoadmap: `Platform roadmap`,
     modulesHeading: `NASNA modules`,
-    stage: `Stage 05.1`,
+    stage: `Stage 06`,
     currentModule: `Current module`,
     completed: `Completed`,
     companyAccessTitle: `Company & Access`,
     companyAccessDescription: `Company setup, tenant isolation, users, roles, and audit controls.`,
     structureTitle: `Branches & Locations`,
     structureDescription: `Company branches and physical workplaces for future people records.`,
+    organizationTitle: `Departments & Teams`,
+    organizationDescription: `Departments, teams, and a live branch-based organization chart.`,
+    jobsTitle: `Job Architecture`,
+    jobsDescription: `Job grades, bilingual titles, descriptions, and approved positions.`,
     planned: `Planned`,
     coreDescription: `People records, organizational structure, roles, and documents.`,
     timeDescription: `Attendance, shifts, leave, and working-time controls.`,
@@ -40,13 +44,17 @@ const translations = {
     accountActive: `الحساب فعّال`,
     platformRoadmap: `خارطة طريق المنصة`,
     modulesHeading: `أنظمة ناسنا`,
-    stage: `المرحلة 05.1`,
+    stage: `المرحلة 06`,
     currentModule: `النظام الحالي`,
     completed: `مكتمل`,
     companyAccessTitle: `الشركة والصلاحيات`,
     companyAccessDescription: `إعداد الشركة وعزل البيانات والمستخدمون والصلاحيات وسجل العمليات.`,
     structureTitle: `الفروع ومواقع العمل`,
     structureDescription: `فروع الشركة وأماكن العمل التي ستعتمد عليها ملفات الموظفين لاحقًا.`,
+    organizationTitle: `الأقسام والفرق`,
+    organizationDescription: `الأقسام والفرق ومخطط تنظيمي مباشر مبني على الفروع.`,
+    jobsTitle: `الهيكل الوظيفي`,
+    jobsDescription: `الدرجات والمسميات ثنائية اللغة والأوصاف والمناصب المعتمدة.`,
     planned: `مخطط`,
     coreDescription: `بيانات الموظفين والهيكل التنظيمي والصلاحيات والمستندات.`,
     timeDescription: `الحضور والمناوبات والإجازات وضوابط وقت العمل.`,
@@ -137,7 +145,7 @@ const handleSignOut = async () => {
 
   try {
     await signOut(auth);
-    window.location.replace(`./?v=20260725.7`);
+    window.location.replace(`./?v=20260725.8`);
   } catch (error) {
     console.error(`NASNA sign-out error.`, error);
     showToast(`signOutError`);
@@ -158,14 +166,14 @@ const sessionFallbackTimer = window.setTimeout(() => {
     return;
   }
 
-  window.location.replace(`./?v=20260725.7`);
+  window.location.replace(`./?v=20260725.8`);
 }, 8000);
 
 onAuthStateChanged(auth, user => {
   window.clearTimeout(sessionFallbackTimer);
 
   if (!user) {
-    window.location.replace(`./?v=20260725.7`);
+    window.location.replace(`./?v=20260725.8`);
     return;
   }
 

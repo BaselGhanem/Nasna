@@ -28,9 +28,9 @@ NASNA will be delivered progressively as independent but connected modules:
 
 ## Current Stage
 
-**Stage 05.1 — Branches & Work Locations**
+**Stages 05 & 06 — Organization & Job Architecture**
 
-Company and access management is complete. The current stage adds company branches and physical work locations with bilingual records, role-enforced editing, soft deactivation, tenant isolation, and immutable audit logs.
+Company access, branches, and work locations are complete. Stages 05 and 06 add departments, teams, a live organization chart, job grades, bilingual job titles and descriptions, and approved organizational positions. Editing is role-enforced, tenant-isolated, audited, and uses soft deactivation instead of deletion.
 
 **Live application:** https://baselghanem.github.io/Nasna/
 
@@ -59,10 +59,17 @@ nasna_companies/{companyId}
 nasna_companies/{companyId}/members/{uid}
 nasna_companies/{companyId}/branches/{branchCode}
 nasna_companies/{companyId}/locations/{locationCode}
+nasna_companies/{companyId}/departments/{departmentCode}
+nasna_companies/{companyId}/teams/{teamCode}
+nasna_companies/{companyId}/jobGrades/{gradeCode}
+nasna_companies/{companyId}/jobTitles/{jobTitleCode}
+nasna_companies/{companyId}/positions/{positionCode}
 nasna_companies/{companyId}/auditLogs/{logId}
 ```
 
-Branch and location codes are immutable uppercase identifiers containing 2–20 English letters, numbers, or hyphens. Records are disabled instead of deleted so future employee and attendance history remains valid.
+Structure and job codes are immutable uppercase identifiers containing 2–20 English letters, numbers, or hyphens. Records are disabled instead of deleted so future employee, attendance, and payroll history remains valid. Deactivating a parent record also disables active dependent records through the application workflow.
+
+Position records connect a job title to a branch and department, with an optional team and work location plus approved headcount. Department manager assignment is intentionally deferred until employee profiles are available, so managers can be linked to real employee records rather than authentication accounts.
 
 ## Access roles
 

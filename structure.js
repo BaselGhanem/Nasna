@@ -7,10 +7,10 @@ import {
   serverTimestamp,
   writeBatch
 } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-firestore.js";
-import { auth } from "./firebase-config.js?v=20260725.7";
-import { db } from "./firestore-config.js?v=20260725.7";
+import { auth } from "./firebase-config.js?v=20260725.8";
+import { db } from "./firestore-config.js?v=20260725.8";
 
-const version = `20260725.7`;
+const version = `20260725.8`;
 const languageKey = `nasna-language`;
 const adminRoles = new Set([`super_admin`, `hr_admin`]);
 const validStatuses = new Set([`active`, `inactive`]);
@@ -22,6 +22,7 @@ const translations = {
     checkingAccess: `Checking your access…`,
     dashboard: `Dashboard`,
     access: `Access`,
+    architecture: `Organization`,
     signOut: `Sign out`,
     stageLabel: `Stage 05.1 · NASNA Core`,
     pageTitle: `Branches & work locations`,
@@ -79,13 +80,13 @@ const translations = {
     branchUpdated: `The branch was updated successfully.`,
     locationCreated: `The work location was created successfully.`,
     locationUpdated: `The work location was updated successfully.`,
-    branchStatusUpdated: `The branch status was updated. Its active locations were disabled when required.`,
-    locationStatusUpdated: `The work location status was updated.`,
-    confirmDisableBranch: `Disable this branch? All active locations linked to it will also be disabled.`,
+    branchStatusUpdated: `The branch status was updated. Active locations, departments, teams, and positions were disabled when required.`,
+    locationStatusUpdated: `The work location status was updated. Active positions at this location were disabled when required.`,
+    confirmDisableBranch: `Disable this branch? Its active locations, departments, teams, and positions will also be disabled.`,
     confirmEnableBranch: `Enable this branch? Its locations will remain unchanged.`,
-    confirmDisableLocation: `Disable this work location?`,
+    confirmDisableLocation: `Disable this work location? Active positions assigned to it will also be disabled.`,
     confirmEnableLocation: `Enable this work location?`,
-    tooManyLocations: `This branch has too many active locations for one safe update. No changes were made.`,
+    tooManyLocations: `There are too many dependent records for one safe update. No changes were made.`,
     permissionTitle: `Access denied`,
     permissionCopy: `Your account does not have an active membership in this company, or the required Firestore rules are not active.`,
     databaseTitle: `Firestore is unavailable`,
@@ -107,6 +108,7 @@ const translations = {
     checkingAccess: `جارٍ التحقق من صلاحياتك…`,
     dashboard: `لوحة التحكم`,
     access: `الصلاحيات`,
+    architecture: `الهيكل التنظيمي`,
     signOut: `تسجيل الخروج`,
     stageLabel: `المرحلة 05.1 · ناسنا Core`,
     pageTitle: `الفروع ومواقع العمل`,
@@ -164,13 +166,13 @@ const translations = {
     branchUpdated: `تم تحديث الفرع بنجاح.`,
     locationCreated: `تم إنشاء موقع العمل بنجاح.`,
     locationUpdated: `تم تحديث موقع العمل بنجاح.`,
-    branchStatusUpdated: `تم تحديث حالة الفرع وتعطيل مواقعه الفعّالة عند الحاجة.`,
-    locationStatusUpdated: `تم تحديث حالة موقع العمل.`,
-    confirmDisableBranch: `هل تريد تعطيل هذا الفرع؟ سيتم أيضًا تعطيل جميع مواقعه الفعّالة.`,
+    branchStatusUpdated: `تم تحديث حالة الفرع وتعطيل مواقعه وأقسامه وفرقه ومناصبه الفعّالة عند الحاجة.`,
+    locationStatusUpdated: `تم تحديث حالة موقع العمل وتعطيل المناصب الفعّالة المرتبطة به عند الحاجة.`,
+    confirmDisableBranch: `هل تريد تعطيل هذا الفرع؟ سيتم أيضًا تعطيل مواقعه وأقسامه وفرقه ومناصبه الفعّالة.`,
     confirmEnableBranch: `هل تريد تفعيل هذا الفرع؟ ستبقى حالات مواقعه كما هي.`,
-    confirmDisableLocation: `هل تريد تعطيل موقع العمل هذا؟`,
+    confirmDisableLocation: `هل تريد تعطيل موقع العمل هذا؟ سيتم أيضًا تعطيل المناصب الفعّالة المرتبطة به.`,
     confirmEnableLocation: `هل تريد تفعيل موقع العمل هذا؟`,
-    tooManyLocations: `يحتوي الفرع على عدد كبير من المواقع لتحديثها بعملية آمنة واحدة. لم يتم إجراء أي تغيير.`,
+    tooManyLocations: `يوجد عدد كبير من السجلات التابعة لتحديثها بعملية آمنة واحدة. لم يتم إجراء أي تغيير.`,
     permissionTitle: `الدخول غير مسموح`,
     permissionCopy: `لا يملك حسابك عضوية فعّالة في هذه الشركة، أو أن قواعد Firestore المطلوبة غير منشورة.`,
     databaseTitle: `Firestore غير متاح`,
@@ -246,6 +248,9 @@ const state = {
   companyId: null,
   branches: [],
   locations: [],
+  departments: [],
+  teams: [],
+  positions: [],
   currentLanguage: null,
   editingBranchId: null,
   editingLocationId: null,
@@ -399,6 +404,30 @@ const locationPath = locationId => doc(
   state.companyId,
   `locations`,
   locationId
+);
+
+const departmentPath = departmentId => doc(
+  db,
+  `nasna_companies`,
+  state.companyId,
+  `departments`,
+  departmentId
+);
+
+const teamPath = teamId => doc(
+  db,
+  `nasna_companies`,
+  state.companyId,
+  `teams`,
+  teamId
+);
+
+const positionPath = positionId => doc(
+  db,
+  `nasna_companies`,
+  state.companyId,
+  `positions`,
+  positionId
 );
 
 const auditPath = () => doc(collection(
@@ -591,9 +620,18 @@ const showSystemState = error => {
 };
 
 const loadStructureData = async () => {
-  const [branchesSnapshot, locationsSnapshot] = await Promise.all([
+  const [
+    branchesSnapshot,
+    locationsSnapshot,
+    departmentsSnapshot,
+    teamsSnapshot,
+    positionsSnapshot
+  ] = await Promise.all([
     getDocs(collection(db, `nasna_companies`, state.companyId, `branches`)),
-    getDocs(collection(db, `nasna_companies`, state.companyId, `locations`))
+    getDocs(collection(db, `nasna_companies`, state.companyId, `locations`)),
+    getDocs(collection(db, `nasna_companies`, state.companyId, `departments`)),
+    getDocs(collection(db, `nasna_companies`, state.companyId, `teams`)),
+    getDocs(collection(db, `nasna_companies`, state.companyId, `positions`))
   ]);
 
   state.branches = branchesSnapshot.docs.map(snapshot => ({
@@ -601,6 +639,18 @@ const loadStructureData = async () => {
     ...snapshot.data()
   }));
   state.locations = locationsSnapshot.docs.map(snapshot => ({
+    id: snapshot.id,
+    ...snapshot.data()
+  }));
+  state.departments = departmentsSnapshot.docs.map(snapshot => ({
+    id: snapshot.id,
+    ...snapshot.data()
+  }));
+  state.teams = teamsSnapshot.docs.map(snapshot => ({
+    id: snapshot.id,
+    ...snapshot.data()
+  }));
+  state.positions = positionsSnapshot.docs.map(snapshot => ({
     id: snapshot.id,
     ...snapshot.data()
   }));
@@ -916,7 +966,32 @@ const toggleBranchStatus = async branchId => {
     ))
     : [];
 
-  if (affectedLocations.length > 450) {
+  const affectedDepartments = targetStatus === `inactive`
+    ? state.departments.filter(department => (
+      department.branchId === branchId && department.status === `active`
+    ))
+    : [];
+  const affectedDepartmentIds = new Set(
+    state.departments
+      .filter(department => department.branchId === branchId)
+      .map(department => department.id)
+  );
+  const affectedTeams = targetStatus === `inactive`
+    ? state.teams.filter(team => (
+      affectedDepartmentIds.has(team.departmentId) && team.status === `active`
+    ))
+    : [];
+  const affectedPositions = targetStatus === `inactive`
+    ? state.positions.filter(position => (
+      position.branchId === branchId && position.status === `active`
+    ))
+    : [];
+  const affectedCount = affectedLocations.length
+    + affectedDepartments.length
+    + affectedTeams.length
+    + affectedPositions.length;
+
+  if (affectedCount > 447) {
     showToast(`tooManyLocations`, `error`);
     return;
   }
@@ -937,10 +1012,34 @@ const toggleBranchStatus = async branchId => {
         updatedBy: state.user.uid
       });
     });
+    affectedDepartments.forEach(department => {
+      batch.update(departmentPath(department.id), {
+        status: `inactive`,
+        updatedAt: serverTimestamp(),
+        updatedBy: state.user.uid
+      });
+    });
+    affectedTeams.forEach(team => {
+      batch.update(teamPath(team.id), {
+        status: `inactive`,
+        updatedAt: serverTimestamp(),
+        updatedBy: state.user.uid
+      });
+    });
+    affectedPositions.forEach(position => {
+      batch.update(positionPath(position.id), {
+        status: `inactive`,
+        updatedAt: serverTimestamp(),
+        updatedBy: state.user.uid
+      });
+    });
     batch.set(auditPath(), auditRecord(`branch.status_changed`, branchId, {
       from: branch.status,
       to: targetStatus,
-      disabledLocations: affectedLocations.length
+      disabledLocations: affectedLocations.length,
+      disabledDepartments: affectedDepartments.length,
+      disabledTeams: affectedTeams.length,
+      disabledPositions: affectedPositions.length
     }));
 
     await batch.commit();
@@ -973,6 +1072,16 @@ const toggleLocationStatus = async locationId => {
     : `confirmEnableLocation`;
   if (!window.confirm(translate(confirmationKey))) return;
 
+  const affectedPositions = targetStatus === `inactive`
+    ? state.positions.filter(position => (
+      position.locationId === locationId && position.status === `active`
+    ))
+    : [];
+  if (affectedPositions.length > 447) {
+    showToast(`tooManyLocations`, `error`);
+    return;
+  }
+
   setMutationLock(true);
 
   try {
@@ -982,10 +1091,18 @@ const toggleLocationStatus = async locationId => {
       updatedAt: serverTimestamp(),
       updatedBy: state.user.uid
     });
+    affectedPositions.forEach(position => {
+      batch.update(positionPath(position.id), {
+        status: `inactive`,
+        updatedAt: serverTimestamp(),
+        updatedBy: state.user.uid
+      });
+    });
     batch.set(auditPath(), auditRecord(`location.status_changed`, locationId, {
       from: location.status,
       to: targetStatus,
-      branchId: location.branchId
+      branchId: location.branchId,
+      disabledPositions: affectedPositions.length
     }));
 
     await batch.commit();
