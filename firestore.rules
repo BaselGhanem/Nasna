@@ -38,6 +38,18 @@ service cloud.firestore {
       return /databases/$(database)/documents/nasna_companies/$(companyId)/jobTitles/$(jobTitleId);
     }
 
+    function positionPath(companyId, positionId) {
+      return /databases/$(database)/documents/nasna_companies/$(companyId)/positions/$(positionId);
+    }
+
+    function employeePath(companyId, employeeId) {
+      return /databases/$(database)/documents/nasna_companies/$(companyId)/employees/$(employeeId);
+    }
+
+    function userPath(uid) {
+      return /databases/$(database)/documents/nasna_users/$(uid);
+    }
+
     function member(companyId) {
       return get(memberPath(companyId, request.auth.uid));
     }
@@ -414,6 +426,210 @@ service cloud.firestore {
         && request.resource.data.updatedBy is string;
     }
 
+    function activeEmploymentStatus(status) {
+      return status in ['active', 'probation', 'leave'];
+    }
+
+    function validEmployeeShape(companyId, employeeId) {
+      return request.resource.data.keys().hasAll([
+          'id',
+          'companyId',
+          'employeeCode',
+          'authUid',
+          'accessStatus',
+          'fullNameEn',
+          'fullNameAr',
+          'workEmail',
+          'workPhone',
+          'positionId',
+          'jobTitleId',
+          'branchId',
+          'locationId',
+          'departmentId',
+          'teamId',
+          'managerEmployeeId',
+          'hireDate',
+          'employmentType',
+          'employmentStatus',
+          'workMode',
+          'createdAt',
+          'createdBy',
+          'updatedAt',
+          'updatedBy'
+        ])
+        && request.resource.data.keys().hasOnly([
+          'id',
+          'companyId',
+          'employeeCode',
+          'authUid',
+          'accessStatus',
+          'fullNameEn',
+          'fullNameAr',
+          'workEmail',
+          'workPhone',
+          'positionId',
+          'jobTitleId',
+          'branchId',
+          'locationId',
+          'departmentId',
+          'teamId',
+          'managerEmployeeId',
+          'hireDate',
+          'employmentType',
+          'employmentStatus',
+          'workMode',
+          'createdAt',
+          'createdBy',
+          'updatedAt',
+          'updatedBy'
+        ])
+        && request.resource.data.id == employeeId
+        && request.resource.data.companyId == companyId
+        && request.resource.data.employeeCode == employeeId
+        && validStructureCode(request.resource.data.employeeCode)
+        && request.resource.data.authUid is string
+        && request.resource.data.authUid.size() > 0
+        && request.resource.data.authUid.size() <= 128
+        && request.resource.data.accessStatus in ['active', 'disabled']
+        && validStructureName(request.resource.data.fullNameEn)
+        && validStructureName(request.resource.data.fullNameAr)
+        && request.resource.data.workEmail is string
+        && request.resource.data.workEmail.size() > 3
+        && request.resource.data.workEmail.size() <= 160
+        && request.resource.data.workEmail.matches('^.+@.+\\..+$')
+        && request.resource.data.workPhone is string
+        && request.resource.data.workPhone.size() <= 30
+        && validStructureCode(request.resource.data.positionId)
+        && validStructureCode(request.resource.data.jobTitleId)
+        && validStructureCode(request.resource.data.branchId)
+        && (
+          request.resource.data.locationId == ''
+          || validStructureCode(request.resource.data.locationId)
+        )
+        && validStructureCode(request.resource.data.departmentId)
+        && (
+          request.resource.data.teamId == ''
+          || validStructureCode(request.resource.data.teamId)
+        )
+        && (
+          request.resource.data.managerEmployeeId == ''
+          || validStructureCode(request.resource.data.managerEmployeeId)
+        )
+        && request.resource.data.managerEmployeeId != employeeId
+        && request.resource.data.hireDate is timestamp
+        && request.resource.data.employmentType in [
+          'permanent',
+          'fixed_term',
+          'part_time',
+          'intern',
+          'consultant'
+        ]
+        && request.resource.data.employmentStatus in [
+          'active',
+          'probation',
+          'leave',
+          'suspended'
+        ]
+        && request.resource.data.workMode in ['onsite', 'hybrid', 'remote']
+        && (
+          (
+            request.resource.data.employmentStatus == 'suspended'
+            && request.resource.data.accessStatus == 'disabled'
+          )
+          || (
+            activeEmploymentStatus(request.resource.data.employmentStatus)
+            && request.resource.data.accessStatus == 'active'
+          )
+        )
+        && request.resource.data.createdAt is timestamp
+        && request.resource.data.createdBy is string
+        && request.resource.data.updatedAt is timestamp
+        && request.resource.data.updatedBy is string;
+    }
+
+    function validEmployeePrivateShape(companyId, employeeId) {
+      return request.resource.data.keys().hasAll([
+          'id',
+          'companyId',
+          'authUid',
+          'nationalId',
+          'dateOfBirth',
+          'gender',
+          'maritalStatus',
+          'nationality',
+          'personalEmail',
+          'personalPhone',
+          'address',
+          'emergencyContactName',
+          'emergencyContactPhone',
+          'hrNotes',
+          'createdAt',
+          'createdBy',
+          'updatedAt',
+          'updatedBy'
+        ])
+        && request.resource.data.keys().hasOnly([
+          'id',
+          'companyId',
+          'authUid',
+          'nationalId',
+          'dateOfBirth',
+          'gender',
+          'maritalStatus',
+          'nationality',
+          'personalEmail',
+          'personalPhone',
+          'address',
+          'emergencyContactName',
+          'emergencyContactPhone',
+          'hrNotes',
+          'createdAt',
+          'createdBy',
+          'updatedAt',
+          'updatedBy'
+        ])
+        && request.resource.data.id == employeeId
+        && request.resource.data.companyId == companyId
+        && request.resource.data.authUid is string
+        && request.resource.data.authUid.size() > 0
+        && request.resource.data.nationalId is string
+        && request.resource.data.nationalId.size() <= 40
+        && (
+          request.resource.data.dateOfBirth == null
+          || request.resource.data.dateOfBirth is timestamp
+        )
+        && request.resource.data.gender in ['not_disclosed', 'male', 'female']
+        && request.resource.data.maritalStatus in [
+          'not_disclosed',
+          'single',
+          'married',
+          'divorced',
+          'widowed'
+        ]
+        && request.resource.data.nationality is string
+        && request.resource.data.nationality.size() <= 80
+        && request.resource.data.personalEmail is string
+        && request.resource.data.personalEmail.size() <= 160
+        && (
+          request.resource.data.personalEmail == ''
+          || request.resource.data.personalEmail.matches('^.+@.+\\..+$')
+        )
+        && request.resource.data.personalPhone is string
+        && request.resource.data.personalPhone.size() <= 30
+        && request.resource.data.address is string
+        && request.resource.data.address.size() <= 240
+        && request.resource.data.emergencyContactName is string
+        && request.resource.data.emergencyContactName.size() <= 120
+        && request.resource.data.emergencyContactPhone is string
+        && request.resource.data.emergencyContactPhone.size() <= 30
+        && request.resource.data.hrNotes is string
+        && request.resource.data.hrNotes.size() <= 2000
+        && request.resource.data.createdAt is timestamp
+        && request.resource.data.createdBy is string
+        && request.resource.data.updatedAt is timestamp
+        && request.resource.data.updatedBy is string;
+    }
+
     function activePositionRelations(companyId) {
       let position = request.resource.data;
       return position.status == 'inactive'
@@ -438,6 +654,32 @@ service cloud.firestore {
             || (
               get(teamPath(companyId, position.teamId)).data.status == 'active'
               && get(teamPath(companyId, position.teamId)).data.departmentId == position.departmentId
+            )
+          )
+        );
+    }
+
+    function activeEmployeeRelations(companyId, employeeId) {
+      let employee = request.resource.data;
+      let position = get(positionPath(companyId, employee.positionId)).data;
+      return exists(positionPath(companyId, employee.positionId))
+        && employee.jobTitleId == position.jobTitleId
+        && employee.branchId == position.branchId
+        && employee.locationId == position.locationId
+        && employee.departmentId == position.departmentId
+        && employee.teamId == position.teamId
+        && (
+          employee.employmentStatus == 'suspended'
+          || (
+            position.status == 'active'
+            && (
+            employee.managerEmployeeId == ''
+            || (
+              exists(employeePath(companyId, employee.managerEmployeeId))
+              && activeEmploymentStatus(
+                get(employeePath(companyId, employee.managerEmployeeId)).data.employmentStatus
+              )
+            )
             )
           )
         );
@@ -802,6 +1044,108 @@ service cloud.firestore {
             'teamId',
             'headcount',
             'status',
+            'updatedAt',
+            'updatedBy'
+          ]);
+
+        allow delete: if false;
+      }
+
+      match /employees/{employeeId} {
+        allow read: if activeMember(companyId);
+
+        allow create: if admin(companyId)
+          && validEmployeeShape(companyId, employeeId)
+          && activeEmployeeRelations(companyId, employeeId)
+          && request.resource.data.createdAt == request.time
+          && request.resource.data.updatedAt == request.time
+          && request.resource.data.createdBy == request.auth.uid
+          && request.resource.data.updatedBy == request.auth.uid
+          && memberAfter(companyId, request.resource.data.authUid).data.employeeId == employeeId
+          && memberAfter(companyId, request.resource.data.authUid).data.email == request.resource.data.workEmail
+          && memberAfter(companyId, request.resource.data.authUid).data.status == request.resource.data.accessStatus
+          && getAfter(userPath(request.resource.data.authUid)).data.employeeId == employeeId
+          && getAfter(userPath(request.resource.data.authUid)).data.activeCompanyId == companyId
+          && getAfter(userPath(request.resource.data.authUid)).data.email == request.resource.data.workEmail
+          && getAfter(userPath(request.resource.data.authUid)).data.status == request.resource.data.accessStatus;
+
+        allow update: if admin(companyId)
+          && validEmployeeShape(companyId, employeeId)
+          && activeEmployeeRelations(companyId, employeeId)
+          && request.resource.data.id == resource.data.id
+          && request.resource.data.companyId == resource.data.companyId
+          && request.resource.data.employeeCode == resource.data.employeeCode
+          && request.resource.data.authUid == resource.data.authUid
+          && request.resource.data.workEmail == resource.data.workEmail
+          && request.resource.data.createdAt == resource.data.createdAt
+          && request.resource.data.createdBy == resource.data.createdBy
+          && request.resource.data.updatedAt == request.time
+          && request.resource.data.updatedBy == request.auth.uid
+          && memberAfter(companyId, request.resource.data.authUid).data.employeeId == employeeId
+          && memberAfter(companyId, request.resource.data.authUid).data.status == request.resource.data.accessStatus
+          && getAfter(userPath(request.resource.data.authUid)).data.employeeId == employeeId
+          && getAfter(userPath(request.resource.data.authUid)).data.status == request.resource.data.accessStatus
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'accessStatus',
+            'fullNameEn',
+            'fullNameAr',
+            'workPhone',
+            'positionId',
+            'jobTitleId',
+            'branchId',
+            'locationId',
+            'departmentId',
+            'teamId',
+            'managerEmployeeId',
+            'hireDate',
+            'employmentType',
+            'employmentStatus',
+            'workMode',
+            'updatedAt',
+            'updatedBy'
+          ]);
+
+        allow delete: if false;
+      }
+
+      match /employeePrivate/{employeeId} {
+        allow get: if admin(companyId)
+          || (
+            activeMember(companyId)
+            && resource.data.authUid == request.auth.uid
+          );
+
+        allow list: if admin(companyId);
+
+        allow create: if admin(companyId)
+          && validEmployeePrivateShape(companyId, employeeId)
+          && getAfter(employeePath(companyId, employeeId)).data.authUid == request.resource.data.authUid
+          && request.resource.data.createdAt == request.time
+          && request.resource.data.updatedAt == request.time
+          && request.resource.data.createdBy == request.auth.uid
+          && request.resource.data.updatedBy == request.auth.uid;
+
+        allow update: if admin(companyId)
+          && validEmployeePrivateShape(companyId, employeeId)
+          && request.resource.data.id == resource.data.id
+          && request.resource.data.companyId == resource.data.companyId
+          && request.resource.data.authUid == resource.data.authUid
+          && request.resource.data.createdAt == resource.data.createdAt
+          && request.resource.data.createdBy == resource.data.createdBy
+          && request.resource.data.updatedAt == request.time
+          && request.resource.data.updatedBy == request.auth.uid
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'nationalId',
+            'dateOfBirth',
+            'gender',
+            'maritalStatus',
+            'nationality',
+            'personalEmail',
+            'personalPhone',
+            'address',
+            'emergencyContactName',
+            'emergencyContactPhone',
+            'hrNotes',
             'updatedAt',
             'updatedBy'
           ]);

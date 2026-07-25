@@ -1,0 +1,477 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#099999">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="NASNA">
+  <title>Employee Records | NASNA</title>
+  <link rel="icon" href="assets/brand/nasna-mark.svg" type="image/svg+xml">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Almarai:wght@400;700;800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="people.css?v=20260725.9">
+</head>
+<body class="is-checking-auth" data-page="records">
+  <div class="auth-loader" id="authLoader" role="status" aria-live="polite">
+    <img src="assets/brand/nasna-mark.svg" width="56" height="56" alt="">
+    <span data-i18n="checkingAccess">Checking your access…</span>
+  </div>
+
+  <div class="people-app" id="peopleApp" hidden>
+    <header class="topbar">
+      <a class="brand-link" href="dashboard.html?v=20260725.9" aria-label="NASNA dashboard">
+        <img src="assets/brand/nasna-mark.svg" width="42" height="42" alt="">
+        <span data-i18n="brandName">NASNA</span>
+      </a>
+
+      <nav class="topbar-actions" aria-label="Workspace navigation">
+        <a class="topbar-link" href="dashboard.html?v=20260725.9">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11 12 4l8 7v9h-6v-6h-4v6H4z"/></svg>
+          <span data-i18n="dashboard">Dashboard</span>
+        </a>
+        <a class="topbar-link" id="myProfileNav" href="employee.html?v=20260725.9" hidden>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.5"/><path d="M5 20v-2a7 7 0 0 1 14 0v2"/></svg>
+          <span data-i18n="myProfile">My profile</span>
+        </a>
+        <a class="topbar-link" id="myTeamNav" href="team.html?v=20260725.9" hidden>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="8" cy="8" r="3"/><circle cx="17" cy="9" r="2.5"/><path d="M2.5 20v-2a5.5 5.5 0 0 1 11 0v2M14 15.5a4.5 4.5 0 0 1 7.5 3.3V20"/></svg>
+          <span data-i18n="myTeam">My team</span>
+        </a>
+        <button class="language-button" id="languageButton" type="button">
+          <span id="languageLabel">العربية</span>
+        </button>
+        <button class="signout-button" id="signOutButton" type="button">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 5H5v14h5M14 8l4 4-4 4m4-4H9"/></svg>
+          <span data-i18n="signOut">Sign out</span>
+        </button>
+      </nav>
+    </header>
+
+    <main class="page-shell">
+      <section class="page-heading">
+        <div>
+          <p class="eyebrow" data-i18n="stageLabel">Stage 07 · People Core</p>
+          <h1 data-i18n="recordsTitle">Employee records</h1>
+          <p data-i18n="recordsCopy">Create the trusted employee file, login account, reporting line, and job assignment in one controlled flow.</p>
+        </div>
+        <div class="signed-in-card">
+          <span class="avatar" id="signedInAvatar">U</span>
+          <span>
+            <small data-i18n="signedInAs">Signed in as</small>
+            <strong id="signedInEmail"></strong>
+          </span>
+        </div>
+      </section>
+
+      <section class="company-banner">
+        <div class="company-identity">
+          <span class="company-monogram" id="companyMonogram">N</span>
+          <span>
+            <small data-i18n="activeWorkspace">Active workspace</small>
+            <strong id="companyName">NASNA</strong>
+            <em id="companyRegion"></em>
+          </span>
+        </div>
+        <div class="role-chip">
+          <small data-i18n="yourRole">Your role</small>
+          <strong id="currentRole"></strong>
+        </div>
+      </section>
+
+      <section class="stats-grid" aria-label="Employee statistics">
+        <article class="stat-card">
+          <span data-i18n="totalEmployees">Total employees</span>
+          <strong id="totalEmployees">0</strong>
+          <small data-i18n="registeredFiles">Registered employee files</small>
+        </article>
+        <article class="stat-card">
+          <span data-i18n="activeEmployees">Active employees</span>
+          <strong id="activeEmployees">0</strong>
+          <small data-i18n="enabledAccess">Enabled access</small>
+        </article>
+        <article class="stat-card">
+          <span data-i18n="peopleManagers">People managers</span>
+          <strong id="peopleManagers">0</strong>
+          <small data-i18n="managerFiles">Employees with direct reports</small>
+        </article>
+        <article class="stat-card">
+          <span data-i18n="availablePositions">Open capacity</span>
+          <strong id="availablePositions">0</strong>
+          <small data-i18n="approvedVacancies">Approved unfilled positions</small>
+        </article>
+      </section>
+
+      <section class="records-card">
+        <div class="records-header">
+          <div>
+            <p class="eyebrow" data-i18n="peopleDirectory">People directory</p>
+            <h2 data-i18n="employeeFiles">Employee files</h2>
+            <p data-i18n="employeeFilesCopy">Only HR Admin and Super Admin can create or change employee records.</p>
+          </div>
+          <div class="records-actions">
+            <a class="secondary-button" href="assets/templates/NASNA_Employee_Import_Template.xlsx" download>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0 4-4m-4 4-4-4M4 19h16"/></svg>
+              <span data-i18n="downloadTemplate">Download template</span>
+            </a>
+            <button class="secondary-button" id="openImportButton" type="button">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21V9m0 0 4 4m-4-4-4 4M4 5h16"/></svg>
+              <span data-i18n="importEmployees">Import employees</span>
+            </button>
+            <button class="primary-button" id="openEmployeeButton" type="button">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+              <span data-i18n="addEmployee">Add employee</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="records-toolbar">
+          <label class="search-field">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m16 16 4 4"/></svg>
+            <input id="employeeSearch" type="search" autocomplete="off" data-i18n-placeholder="searchEmployees" placeholder="Search by name, code, or email">
+          </label>
+          <label class="filter-field">
+            <span data-i18n="department">Department</span>
+            <select id="departmentFilter">
+              <option value="" data-i18n="allDepartments">All departments</option>
+            </select>
+          </label>
+          <label class="filter-field">
+            <span data-i18n="status">Status</span>
+            <select id="statusFilter">
+              <option value="" data-i18n="allStatuses">All statuses</option>
+              <option value="active" data-i18n="active">Active</option>
+              <option value="probation" data-i18n="probation">Probation</option>
+              <option value="leave" data-i18n="leave">On leave</option>
+              <option value="suspended" data-i18n="suspended">Suspended</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="records-table-wrap">
+          <table class="records-table">
+            <thead>
+              <tr>
+                <th data-i18n="employee">Employee</th>
+                <th data-i18n="jobAssignment">Job assignment</th>
+                <th data-i18n="reportingTo">Reporting to</th>
+                <th data-i18n="access">Access</th>
+                <th data-i18n="status">Status</th>
+                <th><span class="sr-only" data-i18n="actions">Actions</span></th>
+              </tr>
+            </thead>
+            <tbody id="employeeTableBody"></tbody>
+          </table>
+        </div>
+
+        <div class="empty-state" id="employeesEmpty" hidden>
+          <span class="empty-icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3"/><path d="M3 20v-2.5A5.5 5.5 0 0 1 8.5 12h1A5.5 5.5 0 0 1 15 17.5V20M17 8h4m-2-2v4"/></svg>
+          </span>
+          <h3 data-i18n="noEmployees">No employee files yet</h3>
+          <p data-i18n="noEmployeesCopy">Add the first employee manually or import the completed NASNA template.</p>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div class="modal-backdrop" id="employeeModal" hidden>
+    <section class="modal modal--wide" role="dialog" aria-modal="true" aria-labelledby="employeeModalTitle">
+      <header class="modal-header">
+        <div>
+          <p class="eyebrow" data-i18n="employeeFile">Employee file</p>
+          <h2 id="employeeModalTitle" data-i18n="createEmployee">Create employee</h2>
+        </div>
+        <button class="icon-button" id="closeEmployeeModal" type="button" aria-label="Close">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>
+        </button>
+      </header>
+
+      <form id="employeeForm" novalidate>
+        <input id="employeeMode" type="hidden" value="create">
+        <div class="form-section">
+          <div class="form-section-heading">
+            <span>01</span>
+            <div>
+              <h3 data-i18n="identityAndAccess">Identity & access</h3>
+              <p data-i18n="identityAndAccessCopy">The work email becomes the employee’s NASNA login.</p>
+            </div>
+          </div>
+          <div class="form-grid form-grid--three">
+            <label>
+              <span data-i18n="employeeCode">Employee code</span>
+              <input id="employeeCode" type="text" maxlength="20" autocomplete="off" placeholder="EMP-0001" required>
+              <small data-i18n="codeHelp">2–20 uppercase letters, numbers, or hyphens.</small>
+            </label>
+            <label>
+              <span data-i18n="fullNameEn">Full name in English</span>
+              <input id="fullNameEn" type="text" maxlength="100" autocomplete="name" required>
+            </label>
+            <label>
+              <span data-i18n="fullNameAr">Full name in Arabic</span>
+              <input id="fullNameAr" type="text" maxlength="100" dir="rtl" autocomplete="off" required>
+            </label>
+            <label>
+              <span data-i18n="workEmail">Work email</span>
+              <input id="workEmail" type="email" maxlength="160" autocomplete="email" required>
+            </label>
+            <label id="passwordField">
+              <span data-i18n="temporaryPassword">Temporary password</span>
+              <input id="temporaryPassword" type="password" minlength="8" maxlength="128" autocomplete="new-password">
+              <small data-i18n="passwordHelp">At least 8 characters. It is never stored in Firestore.</small>
+            </label>
+            <div class="account-link-notice" id="accountLinkNotice" hidden>
+              <strong data-i18n="existingAccountFound">Existing NASNA account found</strong>
+              <small data-i18n="existingAccountHelp">This employee file will be linked to the existing administrator login. No new password is needed.</small>
+            </div>
+            <label>
+              <span data-i18n="workPhone">Work phone</span>
+              <input id="workPhone" type="tel" maxlength="30" autocomplete="tel">
+            </label>
+          </div>
+        </div>
+
+        <div class="form-section">
+          <div class="form-section-heading">
+            <span>02</span>
+            <div>
+              <h3 data-i18n="jobAndReporting">Job & reporting line</h3>
+              <p data-i18n="jobAndReportingCopy">The selected position supplies the approved branch, department, team, location, and job title.</p>
+            </div>
+          </div>
+          <div class="form-grid form-grid--two">
+            <label>
+              <span data-i18n="position">Position</span>
+              <select id="positionId" required></select>
+            </label>
+            <label>
+              <span data-i18n="manager">Direct manager</span>
+              <select id="managerEmployeeId"></select>
+            </label>
+          </div>
+          <div class="assignment-preview" id="assignmentPreview"></div>
+        </div>
+
+        <div class="form-section">
+          <div class="form-section-heading">
+            <span>03</span>
+            <div>
+              <h3 data-i18n="employmentDetails">Employment details</h3>
+              <p data-i18n="employmentDetailsCopy">Core dates and working arrangement used by future attendance and leave modules.</p>
+            </div>
+          </div>
+          <div class="form-grid form-grid--three">
+            <label>
+              <span data-i18n="hireDate">Hire date</span>
+              <input id="hireDate" type="date" required>
+            </label>
+            <label>
+              <span data-i18n="employmentType">Employment type</span>
+              <select id="employmentType" required>
+                <option value="permanent" data-i18n="permanent">Permanent</option>
+                <option value="fixed_term" data-i18n="fixedTerm">Fixed term</option>
+                <option value="part_time" data-i18n="partTime">Part time</option>
+                <option value="intern" data-i18n="intern">Intern</option>
+                <option value="consultant" data-i18n="consultant">Consultant</option>
+              </select>
+            </label>
+            <label>
+              <span data-i18n="employmentStatus">Employment status</span>
+              <select id="employmentStatus" required>
+                <option value="active" data-i18n="active">Active</option>
+                <option value="probation" data-i18n="probation">Probation</option>
+                <option value="leave" data-i18n="leave">On leave</option>
+                <option value="suspended" data-i18n="suspended">Suspended</option>
+              </select>
+            </label>
+            <label>
+              <span data-i18n="workMode">Work mode</span>
+              <select id="workMode" required>
+                <option value="onsite" data-i18n="onsite">On-site</option>
+                <option value="hybrid" data-i18n="hybrid">Hybrid</option>
+                <option value="remote" data-i18n="remote">Remote</option>
+              </select>
+            </label>
+          </div>
+        </div>
+
+        <details class="form-section form-section--details">
+          <summary>
+            <span class="summary-icon">+</span>
+            <span>
+              <strong data-i18n="personalDetails">Personal & emergency details</strong>
+              <small data-i18n="personalDetailsCopy">Private fields visible only to the employee and HR.</small>
+            </span>
+          </summary>
+          <div class="form-grid form-grid--three details-grid">
+            <label>
+              <span data-i18n="nationalId">National ID</span>
+              <input id="nationalId" type="text" maxlength="40" autocomplete="off">
+            </label>
+            <label>
+              <span data-i18n="dateOfBirth">Date of birth</span>
+              <input id="dateOfBirth" type="date">
+            </label>
+            <label>
+              <span data-i18n="gender">Gender</span>
+              <select id="gender">
+                <option value="not_disclosed" data-i18n="notDisclosed">Not disclosed</option>
+                <option value="male" data-i18n="male">Male</option>
+                <option value="female" data-i18n="female">Female</option>
+              </select>
+            </label>
+            <label>
+              <span data-i18n="maritalStatus">Marital status</span>
+              <select id="maritalStatus">
+                <option value="not_disclosed" data-i18n="notDisclosed">Not disclosed</option>
+                <option value="single" data-i18n="single">Single</option>
+                <option value="married" data-i18n="married">Married</option>
+                <option value="divorced" data-i18n="divorced">Divorced</option>
+                <option value="widowed" data-i18n="widowed">Widowed</option>
+              </select>
+            </label>
+            <label>
+              <span data-i18n="nationality">Nationality</span>
+              <input id="nationality" type="text" maxlength="80">
+            </label>
+            <label>
+              <span data-i18n="personalEmail">Personal email</span>
+              <input id="personalEmail" type="email" maxlength="160" autocomplete="email">
+            </label>
+            <label>
+              <span data-i18n="personalPhone">Personal phone</span>
+              <input id="personalPhone" type="tel" maxlength="30" autocomplete="tel">
+            </label>
+            <label class="form-span-two">
+              <span data-i18n="address">Address</span>
+              <input id="address" type="text" maxlength="240" autocomplete="street-address">
+            </label>
+            <label>
+              <span data-i18n="emergencyContactName">Emergency contact</span>
+              <input id="emergencyContactName" type="text" maxlength="120">
+            </label>
+            <label>
+              <span data-i18n="emergencyContactPhone">Emergency phone</span>
+              <input id="emergencyContactPhone" type="tel" maxlength="30">
+            </label>
+            <label class="form-span-two">
+              <span data-i18n="hrNotes">HR notes</span>
+              <textarea id="hrNotes" rows="3" maxlength="2000"></textarea>
+            </label>
+          </div>
+        </details>
+
+        <div class="form-error" id="employeeFormError" role="alert" hidden></div>
+        <footer class="modal-footer">
+          <button class="secondary-button" id="cancelEmployeeButton" type="button" data-i18n="cancel">Cancel</button>
+          <button class="primary-button" id="saveEmployeeButton" type="submit">
+            <span data-i18n="createEmployee">Create employee</span>
+          </button>
+        </footer>
+      </form>
+    </section>
+  </div>
+
+  <div class="modal-backdrop" id="importModal" hidden>
+    <section class="modal modal--import" role="dialog" aria-modal="true" aria-labelledby="importModalTitle">
+      <header class="modal-header">
+        <div>
+          <p class="eyebrow" data-i18n="bulkOnboarding">Bulk onboarding</p>
+          <h2 id="importModalTitle" data-i18n="importEmployees">Import employees</h2>
+        </div>
+        <button class="icon-button" id="closeImportModal" type="button" aria-label="Close">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>
+        </button>
+      </header>
+
+      <div class="import-steps">
+        <article class="import-step">
+          <span>1</span>
+          <div>
+            <strong data-i18n="downloadTemplate">Download template</strong>
+            <p data-i18n="templateStepCopy">Use the official workbook without renaming columns or the Employees sheet.</p>
+          </div>
+          <a class="text-button" href="assets/templates/NASNA_Employee_Import_Template.xlsx" download data-i18n="download">Download</a>
+        </article>
+        <article class="import-step">
+          <span>2</span>
+          <div>
+            <strong data-i18n="uploadCompletedFile">Upload completed file</strong>
+            <p data-i18n="uploadStepCopy">NASNA checks required fields, structure codes, capacity, duplicates, and reporting loops before import.</p>
+          </div>
+          <label class="file-button">
+            <input id="importFile" type="file" accept=".xlsx,.xls" hidden>
+            <span data-i18n="chooseFile">Choose file</span>
+          </label>
+        </article>
+      </div>
+
+      <div class="import-summary" id="importSummary" hidden>
+        <div>
+          <span data-i18n="fileName">File</span>
+          <strong id="importFileName"></strong>
+        </div>
+        <div>
+          <span data-i18n="validRows">Valid rows</span>
+          <strong id="validRowCount">0</strong>
+        </div>
+        <div>
+          <span data-i18n="rowsWithErrors">Rows with errors</span>
+          <strong id="invalidRowCount">0</strong>
+        </div>
+      </div>
+
+      <div class="import-preview" id="importPreview" hidden>
+        <table>
+          <thead>
+            <tr>
+              <th data-i18n="row">Row</th>
+              <th data-i18n="employee">Employee</th>
+              <th data-i18n="position">Position</th>
+              <th data-i18n="manager">Manager</th>
+              <th data-i18n="validation">Validation</th>
+            </tr>
+          </thead>
+          <tbody id="importPreviewBody"></tbody>
+        </table>
+      </div>
+
+      <div class="import-progress" id="importProgress" hidden>
+        <div>
+          <span data-i18n="creatingAccounts">Creating employee files and login accounts…</span>
+          <strong id="importProgressLabel">0 / 0</strong>
+        </div>
+        <progress id="importProgressBar" value="0" max="1"></progress>
+      </div>
+
+      <div class="form-error" id="importError" role="alert" hidden></div>
+      <div class="success-panel" id="importSuccess" hidden>
+        <strong data-i18n="importCompleted">Import completed</strong>
+        <p id="importSuccessCopy"></p>
+        <button class="secondary-button" id="downloadCredentialsButton" type="button">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0 4-4m-4 4-4-4M4 19h16"/></svg>
+          <span data-i18n="downloadCredentials">Download one-time login credentials</span>
+        </button>
+      </div>
+
+      <footer class="modal-footer">
+        <button class="secondary-button" id="cancelImportButton" type="button" data-i18n="cancel">Cancel</button>
+        <button class="primary-button" id="confirmImportButton" type="button" disabled>
+          <span data-i18n="confirmImport">Import validated employees</span>
+        </button>
+      </footer>
+    </section>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite">
+    <span id="toastMessage"></span>
+  </div>
+
+  <script src="assets/vendor/sheetjs/xlsx.full.min.js?v=0.18.5"></script>
+  <script type="module" src="people.js?v=20260725.9"></script>
+</body>
+</html>

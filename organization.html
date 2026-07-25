@@ -14,7 +14,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Almarai:wght@400;700;800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="organization.css?v=20260725.8">
+  <link rel="stylesheet" href="organization.css?v=20260725.9">
 </head>
 <body class="is-checking-auth">
   <div class="page-loader" id="pageLoader" role="status" aria-live="polite">
@@ -24,13 +24,13 @@
 
   <div class="app-shell" id="appShell" hidden>
     <header class="topbar">
-      <a class="brand" href="dashboard.html?v=20260725.8" aria-label="NASNA dashboard">
+      <a class="brand" href="dashboard.html?v=20260725.9" aria-label="NASNA dashboard">
         <img src="assets/brand/nasna-mark.svg" width="42" height="42" alt="">
         <span data-i18n="brandName">NASNA</span>
       </a>
 
       <nav class="topbar-actions" aria-label="Workspace actions">
-        <a class="dashboard-link" href="dashboard.html?v=20260725.8">
+        <a class="dashboard-link" href="dashboard.html?v=20260725.9">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11 12 4l8 7v9h-5v-6H9v6H4z"/></svg>
           <span data-i18n="dashboard">Dashboard</span>
         </a>
@@ -249,7 +249,7 @@
       <div class="modal-header">
         <div>
           <p class="eyebrow" data-i18n="accessControl">Access control</p>
-          <h2 id="addUserTitle" data-i18n="addUserTitle">Create a company user</h2>
+          <h2 id="addUserTitle" data-i18n="addUserTitle">Create an administrator</h2>
         </div>
         <button class="icon-button" id="closeAddUserButton" type="button" aria-label="Close">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>
@@ -270,11 +270,10 @@
         <label class="field">
           <span data-i18n="role">Role</span>
           <select id="newUserRole" required>
-            <option value="employee" data-i18n="employee">Employee</option>
-            <option value="manager" data-i18n="manager">Manager</option>
             <option value="hr_admin" data-i18n="hrAdmin">HR Admin</option>
             <option value="super_admin" data-i18n="superAdmin">Super Admin</option>
           </select>
+          <small data-i18n="employeeAccountHelp">Employee and manager accounts must be created from Employee Records so every login is linked to an employee file.</small>
         </label>
         <label class="field">
           <span data-i18n="temporaryPassword">Temporary password</span>
@@ -298,6 +297,6 @@
     <span id="toastMessage"></span>
   </div>
 
-  <script type="module" src="organization.js?v=20260725.8"></script>
+  <script type="module" src="organization.js?v=20260725.9"></script>
 </body>
 </html>

@@ -23,8 +23,8 @@ import {
 import {
   auth,
   firebaseConfig
-} from "./firebase-config.js?v=20260725.8";
-import { db } from "./firestore-config.js?v=20260725.8";
+} from "./firebase-config.js?v=20260725.9";
+import { db } from "./firestore-config.js?v=20260725.9";
 
 const translations = {
   en: {
@@ -72,7 +72,7 @@ const translations = {
     adminAccess: `Super & HR admins`,
     accessControl: `Access control`,
     peopleWithAccess: `People with access`,
-    addUser: `Add user`,
+    addUser: `Add administrator`,
     noMembers: `No users have been added yet.`,
     securityRules: `Security rules`,
     tenantIsolation: `Tenant isolation active`,
@@ -80,7 +80,7 @@ const translations = {
     checkCompany: `Company-scoped access`,
     checkRoles: `Server-enforced roles`,
     checkAudit: `Immutable audit logs`,
-    addUserTitle: `Create a company user`,
+    addUserTitle: `Create an administrator`,
     fullName: `Full name`,
     workEmail: `Work email`,
     role: `Role`,
@@ -88,10 +88,12 @@ const translations = {
     manager: `Manager`,
     hrAdmin: `HR Admin`,
     superAdmin: `Super Admin`,
+    employeeAccountHelp: `Employee and manager accounts must be created from Employee Records so every login is linked to an employee file.`,
+    employeeStatusManagedInRecords: `Employment access is managed from Employee Records.`,
     temporaryPassword: `Temporary password`,
     temporaryPasswordHelp: `At least 8 characters. Ask the user to reset it after first sign-in.`,
     cancel: `Cancel`,
-    createUser: `Create user`,
+    createUser: `Create administrator`,
     active: `Active`,
     disabled: `Disabled`,
     requiredField: `This field is required.`,
@@ -160,7 +162,7 @@ const translations = {
     adminAccess: `Super Admin وHR Admin`,
     accessControl: `التحكم بالصلاحيات`,
     peopleWithAccess: `الأشخاص المسموح لهم بالدخول`,
-    addUser: `إضافة مستخدم`,
+    addUser: `إضافة مسؤول`,
     noMembers: `لم تتم إضافة مستخدمين بعد.`,
     securityRules: `قواعد الأمان`,
     tenantIsolation: `عزل الشركات مفعّل`,
@@ -168,7 +170,7 @@ const translations = {
     checkCompany: `وصول مقيّد بالشركة`,
     checkRoles: `صلاحيات مطبقة على الخادم`,
     checkAudit: `سجل عمليات غير قابل للتعديل`,
-    addUserTitle: `إنشاء مستخدم للشركة`,
+    addUserTitle: `إنشاء مسؤول للشركة`,
     fullName: `الاسم الكامل`,
     workEmail: `بريد العمل الإلكتروني`,
     role: `الصلاحية`,
@@ -176,10 +178,12 @@ const translations = {
     manager: `مدير`,
     hrAdmin: `مسؤول موارد بشرية`,
     superAdmin: `مسؤول كامل`,
+    employeeAccountHelp: `يجب إنشاء حسابات الموظفين والمديرين من ملفات الموظفين حتى يرتبط كل دخول بملف موظف فعلي.`,
+    employeeStatusManagedInRecords: `تُدار حالة دخول الموظف من شاشة ملفات الموظفين.`,
     temporaryPassword: `كلمة مرور مؤقتة`,
     temporaryPasswordHelp: `8 أحرف على الأقل. اطلب من المستخدم تغييرها بعد أول دخول.`,
     cancel: `إلغاء`,
-    createUser: `إنشاء المستخدم`,
+    createUser: `إنشاء المسؤول`,
     active: `فعّال`,
     disabled: `معطّل`,
     requiredField: `هذا الحقل مطلوب.`,
@@ -205,9 +209,10 @@ const translations = {
   }
 };
 
-const version = `20260725.8`;
+const version = `20260725.9`;
 const languageKey = `nasna-language`;
-const roleValues = [`super_admin`, `hr_admin`, `manager`, `employee`];
+const roleValues = [`super_admin`, `hr_admin`, `employee`];
+const provisionableRoles = new Set([`super_admin`, `hr_admin`]);
 const adminRoles = new Set([`super_admin`, `hr_admin`]);
 const elements = {
   documentElement: document.documentElement,
@@ -502,12 +507,25 @@ const renderCompany = () => {
   elements.openAddUserButton.hidden = !adminRoles.has(state.membership.role);
 };
 
-const roleOptions = selectedRole => roleValues.map(role => {
-  if (role === `super_admin` && state.membership?.role !== `super_admin`) return ``;
-  const key = roleTranslationKey(role);
-  const selected = selectedRole === role ? ` selected` : ``;
-  return `<option value="${role}"${selected}>${translate(key)}</option>`;
-}).join(``);
+const allowedRolesForMember = member => (
+  member.employeeId
+    ? roleValues
+    : [`super_admin`, `hr_admin`]
+);
+
+const roleOptions = member => {
+  const allowedRoles = allowedRolesForMember(member);
+  const roles = allowedRoles.includes(member.role)
+    ? allowedRoles
+    : [member.role, ...allowedRoles];
+  return roles.map(role => {
+    if (role === `super_admin` && state.membership?.role !== `super_admin`) return ``;
+    const key = roleTranslationKey(role);
+    const selected = member.role === role ? ` selected` : ``;
+    const disabled = allowedRoles.includes(role) ? `` : ` disabled`;
+    return `<option value="${role}"${selected}${disabled}>${translate(key)}</option>`;
+  }).join(``);
+};
 
 const renderMembers = () => {
   const isAdmin = adminRoles.has(state.membership?.role);
@@ -527,9 +545,14 @@ const renderMembers = () => {
         state.membership.role === `super_admin`
         || member.role !== `super_admin`
       );
+    const canChangeStatus = canEdit && !member.employeeId;
     const initial = String(member.displayName || member.email || `U`).trim().charAt(0).toUpperCase();
-    const disabled = canEdit ? `` : ` disabled`;
+    const roleDisabled = canEdit ? `` : ` disabled`;
+    const statusDisabled = canChangeStatus ? `` : ` disabled`;
     const statusClass = member.status === `disabled` ? ` is-disabled` : ``;
+    const statusTitle = member.employeeId
+      ? ` title="${translate(`employeeStatusManagedInRecords`)}"`
+      : ``;
 
     return `
       <article class="member-row" data-member-id="${member.uid}">
@@ -540,10 +563,10 @@ const renderMembers = () => {
             <small>${member.email || member.uid}</small>
           </div>
         </div>
-        <select class="member-role" data-action="role"${disabled} aria-label="${translate(`role`)}">
-          ${roleOptions(member.role)}
+        <select class="member-role" data-action="role"${roleDisabled} aria-label="${translate(`role`)}">
+          ${roleOptions(member)}
         </select>
-        <button class="status-button${statusClass}" data-action="status" type="button"${disabled}>
+        <button class="status-button${statusClass}" data-action="status" type="button"${statusDisabled}${statusTitle}>
           ${translate(member.status === `active` ? `active` : `disabled`)}
         </button>
       </article>
@@ -621,6 +644,7 @@ const loadAccountState = async () => {
 const openAddUserModal = () => {
   if (!adminRoles.has(state.membership?.role)) return;
   elements.addUserForm.reset();
+  document.querySelector(`#newUserRole`).value = `hr_admin`;
   const superAdminOption = document.querySelector(`#newUserRole option[value="super_admin"]`);
   superAdminOption.hidden = state.membership.role !== `super_admin`;
   superAdminOption.disabled = state.membership.role !== `super_admin`;
@@ -647,7 +671,7 @@ const newUserFormData = () => {
   fieldError(emailField, !email ? `requiredField` : emailValid ? `` : `invalidEmail`);
   fieldError(passwordField, !password ? `requiredField` : password.length >= 8 ? `` : `shortPassword`);
 
-  if (!displayName || !emailValid || password.length < 8 || !roleValues.includes(role)) return null;
+  if (!displayName || !emailValid || password.length < 8 || !provisionableRoles.has(role)) return null;
   return { displayName, email, password, role };
 };
 
@@ -762,7 +786,12 @@ const handleMembersChange = event => {
   if (!select) return;
   const row = select.closest(`[data-member-id]`);
   const memberId = row?.dataset.memberId;
-  if (!memberId || !roleValues.includes(select.value)) return;
+  const member = state.members.find(item => item.uid === memberId);
+  if (
+    !memberId
+    || !member
+    || !allowedRolesForMember(member).includes(select.value)
+  ) return;
 
   if (!window.confirm(translate(`confirmRole`))) {
     renderMembers();
@@ -779,6 +808,10 @@ const handleMembersClick = event => {
   const memberId = row?.dataset.memberId;
   const member = state.members.find(item => item.uid === memberId);
   if (!member) return;
+  if (member.employeeId) {
+    showToast(`employeeStatusManagedInRecords`, `error`);
+    return;
+  }
 
   if (!window.confirm(translate(`confirmStatus`))) return;
   const status = member.status === `active` ? `disabled` : `active`;

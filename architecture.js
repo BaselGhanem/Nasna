@@ -7,10 +7,10 @@ import {
   serverTimestamp,
   writeBatch
 } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-firestore.js";
-import { auth } from "./firebase-config.js?v=20260725.8";
-import { db } from "./firestore-config.js?v=20260725.8";
+import { auth } from "./firebase-config.js?v=20260725.9";
+import { db } from "./firestore-config.js?v=20260725.9";
 
-const version = `20260725.8`;
+const version = `20260725.9`;
 const languageKey = `nasna-language`;
 const adminRoles = new Set([`super_admin`, `hr_admin`]);
 const validStatuses = new Set([`active`, `inactive`]);
@@ -58,7 +58,7 @@ const translations = {
     orgChartDescription: `A branch-to-department-to-team view generated from current records.`,
     orgChartEmptyTitle: `The chart is waiting for departments`,
     orgChartEmptyCopy: `Branches already exist; add a department to start the hierarchy.`,
-    managerAssignmentNote: `Department manager assignment will be added after employee profiles exist, so managers are linked to real employees rather than login accounts.`,
+    managerAssignmentNote: `Manager relationships are assigned from Employee Records using real employee files, not login accounts.`,
     jobFramework: `Job framework`,
     grades: `Job grades`,
     addGrade: `Add grade`,
@@ -215,7 +215,7 @@ const translations = {
     orgChartDescription: `عرض يتولد من السجلات الحالية ويربط الفرع بالقسم ثم الفريق.`,
     orgChartEmptyTitle: `المخطط بانتظار الأقسام`,
     orgChartEmptyCopy: `الفروع موجودة؛ أضف قسمًا لبدء بناء الهيكل.`,
-    managerAssignmentNote: `سيتم ربط مدير القسم بعد إنشاء ملفات الموظفين، حتى يرتبط المدير بموظف فعلي وليس بحساب دخول.`,
+    managerAssignmentNote: `تُدار علاقات المدير المباشر من ملفات الموظفين، ويرتبط المدير بموظف فعلي لا بحساب دخول.`,
     jobFramework: `الإطار الوظيفي`,
     grades: `الدرجات الوظيفية`,
     addGrade: `إضافة درجة`,

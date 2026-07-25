@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#099999">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="NASNA">
+  <title>My Team | NASNA</title>
+  <link rel="icon" href="assets/brand/nasna-mark.svg" type="image/svg+xml">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Almarai:wght@400;700;800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="people.css?v=20260725.9">
+</head>
+<body class="is-checking-auth" data-page="team">
+  <div class="auth-loader" id="authLoader" role="status" aria-live="polite">
+    <img src="assets/brand/nasna-mark.svg" width="56" height="56" alt="">
+    <span data-i18n="checkingAccess">Checking your access…</span>
+  </div>
+
+  <div class="people-app" id="peopleApp" hidden>
+    <header class="topbar">
+      <a class="brand-link" href="dashboard.html?v=20260725.9" aria-label="NASNA dashboard">
+        <img src="assets/brand/nasna-mark.svg" width="42" height="42" alt="">
+        <span data-i18n="brandName">NASNA</span>
+      </a>
+
+      <nav class="topbar-actions" aria-label="Workspace navigation">
+        <a class="topbar-link" href="dashboard.html?v=20260725.9">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11 12 4l8 7v9h-6v-6h-4v6H4z"/></svg>
+          <span data-i18n="dashboard">Dashboard</span>
+        </a>
+        <a class="topbar-link" href="employee.html?v=20260725.9">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.5"/><path d="M5 20v-2a7 7 0 0 1 14 0v2"/></svg>
+          <span data-i18n="myProfile">My profile</span>
+        </a>
+        <a class="topbar-link is-current" href="team.html?v=20260725.9">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="8" cy="8" r="3"/><circle cx="17" cy="9" r="2.5"/><path d="M2.5 20v-2a5.5 5.5 0 0 1 11 0v2M14 15.5a4.5 4.5 0 0 1 7.5 3.3V20"/></svg>
+          <span data-i18n="myTeam">My team</span>
+        </a>
+        <a class="topbar-link" id="peopleAdminNav" href="people.html?v=20260725.9" hidden>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="8" cy="8" r="3"/><path d="M2.5 20v-2a5.5 5.5 0 0 1 11 0v2M16 8h5m-2.5-2.5v5"/></svg>
+          <span data-i18n="employeeRecords">Employee records</span>
+        </a>
+        <button class="language-button" id="languageButton" type="button">
+          <span id="languageLabel">العربية</span>
+        </button>
+        <button class="signout-button" id="signOutButton" type="button">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 5H5v14h5M14 8l4 4-4 4m4-4H9"/></svg>
+          <span data-i18n="signOut">Sign out</span>
+        </button>
+      </nav>
+    </header>
+
+    <main class="page-shell team-shell">
+      <section class="page-heading">
+        <div>
+          <p class="eyebrow" data-i18n="managerWorkspace">Manager workspace</p>
+          <h1 data-i18n="myTeam">My team</h1>
+          <p data-i18n="myTeamCopy">A focused view of employees who report directly to you. HR remains the only function allowed to change employee records.</p>
+        </div>
+        <div class="signed-in-card">
+          <span class="avatar" id="signedInAvatar">U</span>
+          <span>
+            <small data-i18n="signedInAs">Signed in as</small>
+            <strong id="signedInEmail"></strong>
+          </span>
+        </div>
+      </section>
+
+      <section class="profile-empty" id="teamAccessMissing" hidden>
+        <span class="empty-icon">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="8" cy="8" r="3"/><circle cx="17" cy="9" r="2.5"/><path d="M2.5 20v-2a5.5 5.5 0 0 1 11 0v2M14 15.5a4.5 4.5 0 0 1 7.5 3.3V20"/></svg>
+        </span>
+        <h2 data-i18n="noTeamAccess">No manager workspace is assigned</h2>
+        <p data-i18n="noTeamAccessCopy">This screen appears automatically when at least one active employee reports to your employee file.</p>
+        <a class="primary-button" href="employee.html?v=20260725.9" data-i18n="openMyProfile">Open my profile</a>
+      </section>
+
+      <div id="teamContent" hidden>
+        <section class="manager-banner">
+          <div>
+            <span class="employee-large-avatar" id="managerAvatar">M</span>
+            <span>
+              <small data-i18n="youAreManagingAs">You are managing as</small>
+              <h2 id="managerName">—</h2>
+              <p id="managerPosition">—</p>
+            </span>
+          </div>
+          <span class="manager-boundary">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 5 6v5c0 4.8 2.9 8.2 7 10 4.1-1.8 7-5.2 7-10V6l-7-3Z"/><path d="m9.5 12 1.7 1.7 3.5-3.7"/></svg>
+            <span>
+              <strong data-i18n="viewOnlyTeamData">View-only team data</strong>
+              <small data-i18n="hrOwnsEmployeeChanges">HR owns all employee changes</small>
+            </span>
+          </span>
+        </section>
+
+        <section class="stats-grid stats-grid--three" aria-label="Team statistics">
+          <article class="stat-card">
+            <span data-i18n="directReports">Direct reports</span>
+            <strong id="directReports">0</strong>
+            <small data-i18n="employeesReportingToYou">Employees reporting to you</small>
+          </article>
+          <article class="stat-card">
+            <span data-i18n="availableNow">Available now</span>
+            <strong id="availableNow">0</strong>
+            <small data-i18n="activeOrProbation">Active or probation</small>
+          </article>
+          <article class="stat-card">
+            <span data-i18n="onLeave">On leave</span>
+            <strong id="teamOnLeave">0</strong>
+            <small data-i18n="currentlyOnLeave">Currently marked on leave</small>
+          </article>
+        </section>
+
+        <section class="team-layout">
+          <article class="team-list-card">
+            <header class="team-list-header">
+              <div>
+                <p class="eyebrow" data-i18n="directReports">Direct reports</p>
+                <h2 data-i18n="teamMembers">Team members</h2>
+              </div>
+              <label class="search-field search-field--compact">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m16 16 4 4"/></svg>
+                <input id="teamSearch" type="search" autocomplete="off" data-i18n-placeholder="searchTeam" placeholder="Search team">
+              </label>
+            </header>
+            <div class="team-list" id="teamList"></div>
+          </article>
+
+          <aside class="team-detail-card" id="teamDetail">
+            <div class="team-detail-empty" id="teamDetailEmpty">
+              <span class="empty-icon">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.5"/><path d="M5 20v-2a7 7 0 0 1 14 0v2"/></svg>
+              </span>
+              <h3 data-i18n="selectTeamMember">Select a team member</h3>
+              <p data-i18n="selectTeamMemberCopy">Choose an employee to view their approved job and contact information.</p>
+            </div>
+            <div id="teamDetailContent" hidden>
+              <header class="team-detail-person">
+                <span class="avatar avatar--large" id="teamMemberAvatar">E</span>
+                <span>
+                  <small id="teamMemberCode">—</small>
+                  <h3 id="teamMemberName">—</h3>
+                  <p id="teamMemberTitle">—</p>
+                </span>
+              </header>
+              <dl class="detail-list">
+                <div><dt data-i18n="employmentStatus">Employment status</dt><dd id="teamMemberStatus">—</dd></div>
+                <div><dt data-i18n="department">Department</dt><dd id="teamMemberDepartment">—</dd></div>
+                <div><dt data-i18n="team">Team</dt><dd id="teamMemberTeam">—</dd></div>
+                <div><dt data-i18n="location">Location</dt><dd id="teamMemberLocation">—</dd></div>
+                <div><dt data-i18n="hireDate">Hire date</dt><dd id="teamMemberHireDate">—</dd></div>
+                <div><dt data-i18n="workEmail">Work email</dt><dd id="teamMemberEmail">—</dd></div>
+                <div><dt data-i18n="workPhone">Work phone</dt><dd id="teamMemberPhone">—</dd></div>
+              </dl>
+              <p class="manager-note" data-i18n="managerPrivacyNote">Personal identifiers, private contact information, and HR notes are not available in the manager workspace.</p>
+            </div>
+          </aside>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite">
+    <span id="toastMessage"></span>
+  </div>
+
+  <script type="module" src="people.js?v=20260725.9"></script>
+</body>
+</html>

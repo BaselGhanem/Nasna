@@ -1,5 +1,10 @@
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-auth.js";
-import { auth } from "./firebase-config.js?v=20260725.8";
+import { doc, getDoc } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-firestore.js";
+import { auth } from "./firebase-config.js?v=20260725.9";
+import { db } from "./firestore-config.js?v=20260725.9";
+
+const release = `20260725.9`;
+const adminRoles = new Set([`super_admin`, `hr_admin`]);
 
 const translations = {
   en: {
@@ -13,7 +18,7 @@ const translations = {
     accountActive: `Account active`,
     platformRoadmap: `Platform roadmap`,
     modulesHeading: `NASNA modules`,
-    stage: `Stage 06`,
+    stage: `Stage 07`,
     currentModule: `Current module`,
     completed: `Completed`,
     companyAccessTitle: `Company & Access`,
@@ -24,6 +29,12 @@ const translations = {
     organizationDescription: `Departments, teams, and a live branch-based organization chart.`,
     jobsTitle: `Job Architecture`,
     jobsDescription: `Job grades, bilingual titles, descriptions, and approved positions.`,
+    peopleTitle: `Employee Records`,
+    peopleDescription: `Employee files, login accounts, reporting lines, self-service, and manager workspaces.`,
+    myProfileTitle: `My employee file`,
+    myProfileDescription: `View your job assignment, reporting line, work details, and private employee information.`,
+    managerProfileTitle: `My profile & team`,
+    managerProfileDescription: `Open your employee file, then switch to the separate manager workspace for your direct reports.`,
     planned: `Planned`,
     coreDescription: `People records, organizational structure, roles, and documents.`,
     timeDescription: `Attendance, shifts, leave, and working-time controls.`,
@@ -44,7 +55,7 @@ const translations = {
     accountActive: `الحساب فعّال`,
     platformRoadmap: `خارطة طريق المنصة`,
     modulesHeading: `أنظمة ناسنا`,
-    stage: `المرحلة 06`,
+    stage: `المرحلة 07`,
     currentModule: `النظام الحالي`,
     completed: `مكتمل`,
     companyAccessTitle: `الشركة والصلاحيات`,
@@ -55,6 +66,12 @@ const translations = {
     organizationDescription: `الأقسام والفرق ومخطط تنظيمي مباشر مبني على الفروع.`,
     jobsTitle: `الهيكل الوظيفي`,
     jobsDescription: `الدرجات والمسميات ثنائية اللغة والأوصاف والمناصب المعتمدة.`,
+    peopleTitle: `ملفات الموظفين`,
+    peopleDescription: `ملفات الموظفين وحسابات الدخول والتبعية الإدارية ومساحتا الموظف والمدير.`,
+    myProfileTitle: `ملفي الوظيفي`,
+    myProfileDescription: `اعرض تعيينك الوظيفي ومديرك المباشر وتفاصيل العمل والمعلومات الخاصة.`,
+    managerProfileTitle: `ملفي وفريقي`,
+    managerProfileDescription: `افتح ملفك كموظف، ثم انتقل إلى مساحة المدير المنفصلة لمتابعة مرؤوسيك المباشرين.`,
     planned: `مخطط`,
     coreDescription: `بيانات الموظفين والهيكل التنظيمي والصلاحيات والمستندات.`,
     timeDescription: `الحضور والمناوبات والإجازات وضوابط وقت العمل.`,
@@ -76,6 +93,9 @@ const elements = {
   userEmail: document.querySelector(`#userEmail`),
   userAvatar: document.querySelector(`#userAvatar`),
   logoutButton: document.querySelector(`#logoutButton`),
+  peopleModuleLink: document.querySelector(`#peopleModuleLink`),
+  peopleModuleTitle: document.querySelector(`#peopleModuleTitle`),
+  peopleModuleDescription: document.querySelector(`#peopleModuleDescription`),
   toast: document.querySelector(`#dashboardToast`),
   toastMessage: document.querySelector(`#dashboardToastMessage`)
 };
@@ -100,8 +120,36 @@ const safeStorage = {
 
 let currentLanguage = safeStorage.get(storageKey) || (navigator.language.startsWith(`ar`) ? `ar` : `en`);
 let toastTimer = null;
+let sessionContext = null;
 
 const translate = key => translations[currentLanguage][key] || key;
+
+const renderPeopleModule = () => {
+  if (!elements.peopleModuleLink || !sessionContext) return;
+  const { membership } = sessionContext;
+  const isAdmin = adminRoles.has(membership.role);
+  const hasEmployeeFile = Boolean(membership.employeeId);
+  const isManager = Boolean(membership.isManager || membership.role === `manager`);
+
+  elements.peopleModuleLink.href = isAdmin
+    ? `people.html?v=${release}`
+    : hasEmployeeFile
+      ? `employee.html?v=${release}`
+      : `organization.html?v=${release}`;
+
+  const titleKey = isAdmin
+    ? `peopleTitle`
+    : isManager
+      ? `managerProfileTitle`
+      : `myProfileTitle`;
+  const descriptionKey = isAdmin
+    ? `peopleDescription`
+    : isManager
+      ? `managerProfileDescription`
+      : `myProfileDescription`;
+  elements.peopleModuleTitle.textContent = translate(titleKey);
+  elements.peopleModuleDescription.textContent = translate(descriptionKey);
+};
 
 const setLanguage = language => {
   currentLanguage = language;
@@ -116,6 +164,7 @@ const setLanguage = language => {
   });
 
   elements.languageLabel.textContent = translate(`language`);
+  renderPeopleModule();
 };
 
 const showToast = messageKey => {
@@ -140,12 +189,38 @@ const revealWorkspace = user => {
   document.body.classList.remove(`is-checking-auth`);
 };
 
+const loadSessionContext = async user => {
+  const profileSnapshot = await getDoc(doc(db, `nasna_users`, user.uid));
+  if (!profileSnapshot.exists()) {
+    throw new Error(`NASNA user profile is missing.`);
+  }
+  const userProfile = profileSnapshot.data();
+  if (userProfile.status !== `active` || !userProfile.activeCompanyId) {
+    throw new Error(`NASNA user access is disabled.`);
+  }
+  const membershipSnapshot = await getDoc(doc(
+    db,
+    `nasna_companies`,
+    userProfile.activeCompanyId,
+    `members`,
+    user.uid
+  ));
+  if (!membershipSnapshot.exists() || membershipSnapshot.data().status !== `active`) {
+    throw new Error(`NASNA company membership is disabled.`);
+  }
+  sessionContext = {
+    userProfile,
+    membership: membershipSnapshot.data()
+  };
+  renderPeopleModule();
+};
+
 const handleSignOut = async () => {
   elements.logoutButton.disabled = true;
 
   try {
     await signOut(auth);
-    window.location.replace(`./?v=20260725.8`);
+    window.location.replace(`./?v=${release}`);
   } catch (error) {
     console.error(`NASNA sign-out error.`, error);
     showToast(`signOutError`);
@@ -161,21 +236,23 @@ elements.logoutButton.addEventListener(`click`, handleSignOut);
 setLanguage(currentLanguage);
 
 const sessionFallbackTimer = window.setTimeout(() => {
-  if (auth.currentUser) {
-    revealWorkspace(auth.currentUser);
-    return;
-  }
-
-  window.location.replace(`./?v=20260725.8`);
+  window.location.replace(`./?v=${release}`);
 }, 8000);
 
-onAuthStateChanged(auth, user => {
+onAuthStateChanged(auth, async user => {
   window.clearTimeout(sessionFallbackTimer);
 
   if (!user) {
-    window.location.replace(`./?v=20260725.8`);
+    window.location.replace(`./?v=${release}`);
     return;
   }
 
-  revealWorkspace(user);
+  try {
+    await loadSessionContext(user);
+    revealWorkspace(user);
+  } catch (error) {
+    console.error(`NASNA dashboard access error.`, error);
+    await signOut(auth).catch(() => undefined);
+    window.location.replace(`./?error=access-disabled&v=${release}`);
+  }
 });
