@@ -312,7 +312,7 @@ html[lang="ar"] .section-eyebrow {
 
 .module-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 16px;
 }
 
@@ -349,6 +349,16 @@ html[lang="ar"] .section-eyebrow {
     radial-gradient(circle at 100% 0%, rgba(9, 153, 153, 0.12), transparent 45%),
     #eff8f7;
   border-color: rgba(9, 153, 153, 0.2);
+}
+
+.module-card--complete {
+  background: #f8fbfb;
+  border-color: var(--border);
+}
+
+.module-card--complete .module-status::before {
+  margin-inline-end: 5px;
+  content: "✓";
 }
 
 .module-icon {
@@ -462,6 +472,12 @@ html[lang="ar"] .module-status {
   font-size: 12px;
 }
 
+@media (max-width: 1040px) {
+  .module-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 @media (max-width: 820px) {
   .topbar {
     flex-wrap: wrap;
@@ -478,10 +494,6 @@ html[lang="ar"] .module-status {
   .user-menu {
     flex: 1;
     border-inline-start: 0;
-  }
-
-  .module-grid {
-    grid-template-columns: 1fr;
   }
 
   .module-card {
@@ -531,6 +543,7 @@ html[lang="ar"] .module-status {
   }
 
   .module-grid {
+    grid-template-columns: 1fr;
     padding: 20px;
     border-radius: 21px;
   }

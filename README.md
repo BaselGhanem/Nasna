@@ -28,15 +28,15 @@ NASNA will be delivered progressively as independent but connected modules:
 
 ## Current Stage
 
-**Stage 04 — Company & Access Management**
+**Stage 05.1 — Branches & Work Locations**
 
-The authenticated workspace now includes multi-company Firestore architecture, company onboarding, tenant isolation, four access roles, user provisioning, account disabling, and immutable audit logs.
+Company and access management is complete. The current stage adds company branches and physical work locations with bilingual records, role-enforced editing, soft deactivation, tenant isolation, and immutable audit logs.
 
 **Live application:** https://baselghanem.github.io/Nasna/
 
 ## Firestore activation
 
-Stage 04 uses the existing named Firestore database:
+NASNA uses the existing named Firestore database:
 
 `ai-studio-2f881b3f-5867-4dfd-b360-c85f26c6ded4`
 
@@ -57,8 +57,12 @@ The Firebase project is defined in `.firebaserc`. `firebase.json` binds `firesto
 nasna_users/{uid}
 nasna_companies/{companyId}
 nasna_companies/{companyId}/members/{uid}
+nasna_companies/{companyId}/branches/{branchCode}
+nasna_companies/{companyId}/locations/{locationCode}
 nasna_companies/{companyId}/auditLogs/{logId}
 ```
+
+Branch and location codes are immutable uppercase identifiers containing 2–20 English letters, numbers, or hyphens. Records are disabled instead of deleted so future employee and attendance history remains valid.
 
 ## Access roles
 

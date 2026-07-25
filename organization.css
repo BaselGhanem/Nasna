@@ -995,6 +995,7 @@ html[dir="rtl"] .primary-button > svg {
   z-index: 120;
   inset-inline: 50%;
   inset-block-end: max(24px, env(safe-area-inset-bottom));
+  width: max-content;
   max-width: min(520px, calc(100% - 32px));
   padding: 13px 17px;
   color: var(--surface);

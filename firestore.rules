@@ -14,6 +14,10 @@ service cloud.firestore {
       return /databases/$(database)/documents/nasna_companies/$(companyId);
     }
 
+    function branchPath(companyId, branchId) {
+      return /databases/$(database)/documents/nasna_companies/$(companyId)/branches/$(branchId);
+    }
+
     function member(companyId) {
       return get(memberPath(companyId, request.auth.uid));
     }
@@ -52,6 +56,110 @@ service cloud.firestore {
         && request.resource.data.displayName is string
         && request.resource.data.activeCompanyId is string
         && request.resource.data.status in ['active', 'disabled'];
+    }
+
+    function validStructureCode(value) {
+      return value is string
+        && value.matches('^[A-Z0-9][A-Z0-9-]{1,19}$');
+    }
+
+    function validStructureName(value) {
+      return value is string
+        && value.size() > 0
+        && value.size() <= 100;
+    }
+
+    function validBranchShape(companyId, branchId) {
+      return request.resource.data.keys().hasAll([
+          'id',
+          'companyId',
+          'code',
+          'nameEn',
+          'nameAr',
+          'status',
+          'createdAt',
+          'createdBy',
+          'updatedAt',
+          'updatedBy'
+        ])
+        && request.resource.data.keys().hasOnly([
+          'id',
+          'companyId',
+          'code',
+          'nameEn',
+          'nameAr',
+          'status',
+          'createdAt',
+          'createdBy',
+          'updatedAt',
+          'updatedBy'
+        ])
+        && request.resource.data.id == branchId
+        && request.resource.data.companyId == companyId
+        && request.resource.data.code == branchId
+        && validStructureCode(request.resource.data.code)
+        && validStructureName(request.resource.data.nameEn)
+        && validStructureName(request.resource.data.nameAr)
+        && request.resource.data.status in ['active', 'inactive']
+        && request.resource.data.createdAt is timestamp
+        && request.resource.data.createdBy is string
+        && request.resource.data.updatedAt is timestamp
+        && request.resource.data.updatedBy is string;
+    }
+
+    function validLocationShape(companyId, locationId) {
+      return request.resource.data.keys().hasAll([
+          'id',
+          'companyId',
+          'code',
+          'branchId',
+          'nameEn',
+          'nameAr',
+          'city',
+          'address',
+          'timezone',
+          'status',
+          'createdAt',
+          'createdBy',
+          'updatedAt',
+          'updatedBy'
+        ])
+        && request.resource.data.keys().hasOnly([
+          'id',
+          'companyId',
+          'code',
+          'branchId',
+          'nameEn',
+          'nameAr',
+          'city',
+          'address',
+          'timezone',
+          'status',
+          'createdAt',
+          'createdBy',
+          'updatedAt',
+          'updatedBy'
+        ])
+        && request.resource.data.id == locationId
+        && request.resource.data.companyId == companyId
+        && request.resource.data.code == locationId
+        && validStructureCode(request.resource.data.code)
+        && validStructureCode(request.resource.data.branchId)
+        && validStructureName(request.resource.data.nameEn)
+        && validStructureName(request.resource.data.nameAr)
+        && request.resource.data.city is string
+        && request.resource.data.city.size() > 0
+        && request.resource.data.city.size() <= 80
+        && request.resource.data.address is string
+        && request.resource.data.address.size() <= 200
+        && request.resource.data.timezone is string
+        && request.resource.data.timezone.size() > 0
+        && request.resource.data.timezone.size() <= 80
+        && request.resource.data.status in ['active', 'inactive']
+        && request.resource.data.createdAt is timestamp
+        && request.resource.data.createdBy is string
+        && request.resource.data.updatedAt is timestamp
+        && request.resource.data.updatedBy is string;
     }
 
     match /nasna_users/{uid} {
@@ -158,6 +266,79 @@ service cloud.firestore {
           && memberId != get(companyPath(companyId)).data.ownerId;
       }
 
+      match /branches/{branchId} {
+        allow read: if activeMember(companyId);
+
+        allow create: if admin(companyId)
+          && validBranchShape(companyId, branchId)
+          && request.resource.data.createdAt == request.time
+          && request.resource.data.updatedAt == request.time
+          && request.resource.data.createdBy == request.auth.uid
+          && request.resource.data.updatedBy == request.auth.uid;
+
+        allow update: if admin(companyId)
+          && validBranchShape(companyId, branchId)
+          && request.resource.data.id == resource.data.id
+          && request.resource.data.companyId == resource.data.companyId
+          && request.resource.data.code == resource.data.code
+          && request.resource.data.createdAt == resource.data.createdAt
+          && request.resource.data.createdBy == resource.data.createdBy
+          && request.resource.data.updatedAt == request.time
+          && request.resource.data.updatedBy == request.auth.uid
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'nameEn',
+            'nameAr',
+            'status',
+            'updatedAt',
+            'updatedBy'
+          ]);
+
+        allow delete: if false;
+      }
+
+      match /locations/{locationId} {
+        allow read: if activeMember(companyId);
+
+        allow create: if admin(companyId)
+          && validLocationShape(companyId, locationId)
+          && exists(branchPath(companyId, request.resource.data.branchId))
+          && get(branchPath(companyId, request.resource.data.branchId)).data.status == 'active'
+          && request.resource.data.createdAt == request.time
+          && request.resource.data.updatedAt == request.time
+          && request.resource.data.createdBy == request.auth.uid
+          && request.resource.data.updatedBy == request.auth.uid;
+
+        allow update: if admin(companyId)
+          && validLocationShape(companyId, locationId)
+          && request.resource.data.id == resource.data.id
+          && request.resource.data.companyId == resource.data.companyId
+          && request.resource.data.code == resource.data.code
+          && request.resource.data.createdAt == resource.data.createdAt
+          && request.resource.data.createdBy == resource.data.createdBy
+          && request.resource.data.updatedAt == request.time
+          && request.resource.data.updatedBy == request.auth.uid
+          && (
+            request.resource.data.status == 'inactive'
+            || (
+              exists(branchPath(companyId, request.resource.data.branchId))
+              && get(branchPath(companyId, request.resource.data.branchId)).data.status == 'active'
+            )
+          )
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'branchId',
+            'nameEn',
+            'nameAr',
+            'city',
+            'address',
+            'timezone',
+            'status',
+            'updatedAt',
+            'updatedBy'
+          ]);
+
+        allow delete: if false;
+      }
+
       match /auditLogs/{logId} {
         allow read: if admin(companyId);
 
@@ -165,7 +346,22 @@ service cloud.firestore {
           && activeMemberAfter(companyId)
           && request.resource.data.companyId == companyId
           && request.resource.data.actorId == request.auth.uid
-          && request.resource.data.action is string;
+          && request.resource.data.actorEmail is string
+          && request.resource.data.action is string
+          && request.resource.data.action.size() > 0
+          && request.resource.data.action.size() <= 100
+          && request.resource.data.targetId is string
+          && request.resource.data.details is map
+          && request.resource.data.createdAt == request.time
+          && request.resource.data.keys().hasOnly([
+            'companyId',
+            'actorId',
+            'actorEmail',
+            'action',
+            'targetId',
+            'details',
+            'createdAt'
+          ]);
 
         allow update, delete: if false;
       }

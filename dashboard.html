@@ -14,7 +14,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Almarai:wght@400;700;800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="dashboard.css?v=20260725.6">
+  <link rel="stylesheet" href="dashboard.css?v=20260725.7">
 </head>
 <body class="is-checking-auth">
   <div class="auth-loader" id="authLoader" role="status" aria-live="polite">
@@ -70,10 +70,10 @@
             <p class="section-eyebrow" data-i18n="platformRoadmap">Platform roadmap</p>
             <h2 id="modulesHeading" data-i18n="modulesHeading">NASNA modules</h2>
           </div>
-          <span class="stage-badge" data-i18n="stage">Stage 04</span>
+          <span class="stage-badge" data-i18n="stage">Stage 05.1</span>
         </div>
 
-        <a class="module-card module-card--current module-card--link" href="organization.html?v=20260725.6">
+        <a class="module-card module-card--complete module-card--link" href="organization.html?v=20260725.7">
           <div class="module-icon">
             <svg viewBox="0 0 24 24" aria-hidden="true">
               <circle cx="9" cy="8" r="3"/>
@@ -81,9 +81,22 @@
             </svg>
           </div>
           <div>
-            <span class="module-status" data-i18n="currentModule">Current module</span>
+            <span class="module-status" data-i18n="completed">Completed</span>
             <h3 data-i18n="companyAccessTitle">Company & Access</h3>
             <p data-i18n="companyAccessDescription">Company setup, tenant isolation, users, roles, and audit controls.</p>
+          </div>
+        </a>
+
+        <a class="module-card module-card--current module-card--link" href="structure.html?v=20260725.7">
+          <div class="module-icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M4 20V8l8-4 8 4v12M8 11h2m4 0h2M8 15h2m4 0h2M3 20h18"/>
+            </svg>
+          </div>
+          <div>
+            <span class="module-status" data-i18n="currentModule">Current module</span>
+            <h3 data-i18n="structureTitle">Branches & Locations</h3>
+            <p data-i18n="structureDescription">Company branches and physical workplaces for future people records.</p>
           </div>
         </a>
 
@@ -134,6 +147,6 @@
     <span id="dashboardToastMessage"></span>
   </div>
 
-  <script type="module" src="dashboard.js?v=20260725.6"></script>
+  <script type="module" src="dashboard.js?v=20260725.7"></script>
 </body>
 </html>
