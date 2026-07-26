@@ -10,10 +10,10 @@ import {
   where,
   writeBatch
 } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-firestore.js";
-import { auth } from "./firebase-config.js?v=20260726.1";
-import { db } from "./firestore-config.js?v=20260726.1";
+import { auth } from "./firebase-config.js?v=20260726.3";
+import { db } from "./firestore-config.js?v=20260726.3";
 
-const release = `20260726.1`;
+const release = `20260726.3`;
 const pageType = document.body.dataset.page || `documents`;
 const adminRoles = new Set([`super_admin`, `hr_admin`]);
 const activeEmploymentStatuses = new Set([`active`, `probation`, `leave`]);
@@ -50,6 +50,7 @@ const translations = {
     employeeRecords: `Employees`,
     documents: `Documents`,
     employmentHistory: `History`,
+    requests: `Requests`,
     signOut: `Sign out`,
     signedInAs: `Signed in as`,
     stage08: `Stage 08 · NASNA Core`,
@@ -209,6 +210,7 @@ const translations = {
     employeeRecords: `الموظفون`,
     documents: `الوثائق`,
     employmentHistory: `السجل الوظيفي`,
+    requests: `الطلبات`,
     signOut: `تسجيل الخروج`,
     signedInAs: `المستخدم الحالي`,
     stage08: `المرحلة 08 · ناسنا الأساسي`,
