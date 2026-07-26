@@ -1,9 +1,9 @@
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-auth.js";
 import { doc, getDoc } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-firestore.js";
-import { auth } from "./firebase-config.js?v=20260726.1";
-import { db } from "./firestore-config.js?v=20260726.1";
+import { auth } from "./firebase-config.js?v=20260726.3";
+import { db } from "./firestore-config.js?v=20260726.3";
 
-const release = `20260726.1`;
+const release = `20260726.3`;
 const adminRoles = new Set([`super_admin`, `hr_admin`]);
 
 const translations = {
@@ -18,7 +18,7 @@ const translations = {
     accountActive: `Account active`,
     platformRoadmap: `Platform roadmap`,
     modulesHeading: `NASNA modules`,
-    stage: `Stage 09`,
+    stage: `Stage 10`,
     currentModule: `Current module`,
     completed: `Completed`,
     companyAccessTitle: `Company & Access`,
@@ -39,6 +39,8 @@ const translations = {
     documentsDescription: `Employee document register, expiry monitoring, visibility controls, and secure references.`,
     lifecycleTitle: `Employment Lifecycle`,
     lifecycleDescription: `Immutable transfers, promotions, reporting changes, and employment history.`,
+    requestsApprovalsTitle: `Requests & Approvals`,
+    requestsApprovalsDescription: `Employee self-service, manager approvals, HR fulfillment, notifications, SLAs, and immutable request history.`,
     planned: `Planned`,
     coreDescription: `People records, organizational structure, roles, and documents.`,
     timeDescription: `Attendance, shifts, leave, and working-time controls.`,
@@ -59,7 +61,7 @@ const translations = {
     accountActive: `الحساب فعّال`,
     platformRoadmap: `خارطة طريق المنصة`,
     modulesHeading: `أنظمة ناسنا`,
-    stage: `المرحلة 09`,
+    stage: `المرحلة 10`,
     currentModule: `النظام الحالي`,
     completed: `مكتمل`,
     companyAccessTitle: `الشركة والصلاحيات`,
@@ -80,6 +82,8 @@ const translations = {
     documentsDescription: `سجل وثائق الموظفين ومتابعة الانتهاء وضبط الظهور والمراجع الآمنة.`,
     lifecycleTitle: `دورة حياة الموظف`,
     lifecycleDescription: `سجل غير قابل للتعديل للنقل والترقيات وتغيير التبعية والحركات الوظيفية.`,
+    requestsApprovalsTitle: `الطلبات والموافقات`,
+    requestsApprovalsDescription: `خدمة الموظف الذاتية وموافقات المدير وتنفيذ HR والإشعارات وSLA وسجل طلبات غير قابل للتعديل.`,
     planned: `مخطط`,
     coreDescription: `بيانات الموظفين والهيكل التنظيمي والصلاحيات والمستندات.`,
     timeDescription: `الحضور والمناوبات والإجازات وضوابط وقت العمل.`,

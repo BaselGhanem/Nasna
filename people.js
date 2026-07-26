@@ -21,10 +21,10 @@ import {
   deleteApp,
   initializeApp
 } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-app.js";
-import { auth, firebaseConfig } from "./firebase-config.js?v=20260726.1";
-import { db } from "./firestore-config.js?v=20260726.1";
+import { auth, firebaseConfig } from "./firebase-config.js?v=20260726.3";
+import { db } from "./firestore-config.js?v=20260726.3";
 
-const release = `20260726.1`;
+const release = `20260726.3`;
 const pageType = document.body.dataset.page || `records`;
 const adminRoles = new Set([`super_admin`, `hr_admin`]);
 const activeEmploymentStatuses = new Set([`active`, `probation`, `leave`]);
@@ -230,6 +230,7 @@ const translations = {
     credentialsDownloaded: `The one-time credentials file was downloaded.`,
     documents: `Documents`,
     employmentHistory: `History`,
+    requests: `Requests`,
     managedByLifecycle: `Managed through employment movements`,
     managedByLifecycleCopy: `Position, manager, employment type, status, and work mode are locked here after creation. Use Employment History to apply an auditable HR movement.`,
     importRowFailed: `This row could not be created.`,
@@ -447,6 +448,7 @@ const translations = {
     credentialsDownloaded: `تم تنزيل ملف بيانات الدخول لمرة واحدة.`,
     documents: `الوثائق`,
     employmentHistory: `السجل الوظيفي`,
+    requests: `الطلبات`,
     managedByLifecycle: `تُدار من خلال الحركات الوظيفية`,
     managedByLifecycleCopy: `المنصب والمدير ونوع التوظيف والحالة ونظام العمل مقفلة هنا بعد الإنشاء. استخدم السجل الوظيفي لتنفيذ حركة HR موثقة.`,
     importRowFailed: `تعذر إنشاء هذا الصف.`,
