@@ -18,6 +18,7 @@
     "exceljs": "4.4.0",
     "firebase": "12.16.0",
     "firebase-tools": "14.23.0",
+    "proxy-agent": "8.0.2",
     "puppeteer-core": "25.3.0"
   }
 }
