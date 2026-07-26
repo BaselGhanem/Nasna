@@ -21,10 +21,10 @@ import {
   deleteApp,
   initializeApp
 } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-app.js";
-import { auth, firebaseConfig } from "./firebase-config.js?v=20260725.9";
-import { db } from "./firestore-config.js?v=20260725.9";
+import { auth, firebaseConfig } from "./firebase-config.js?v=20260726.1";
+import { db } from "./firestore-config.js?v=20260726.1";
 
-const release = `20260725.9`;
+const release = `20260726.1`;
 const pageType = document.body.dataset.page || `records`;
 const adminRoles = new Set([`super_admin`, `hr_admin`]);
 const activeEmploymentStatuses = new Set([`active`, `probation`, `leave`]);
@@ -228,6 +228,10 @@ const translations = {
     importPartialSummary: `{success} employees were created and {failed} rows failed. Download successful credentials and correct only the failed rows.`,
     noCredentials: `No login credentials are available for download.`,
     credentialsDownloaded: `The one-time credentials file was downloaded.`,
+    documents: `Documents`,
+    employmentHistory: `History`,
+    managedByLifecycle: `Managed through employment movements`,
+    managedByLifecycleCopy: `Position, manager, employment type, status, and work mode are locked here after creation. Use Employment History to apply an auditable HR movement.`,
     importRowFailed: `This row could not be created.`,
     rowValid: `Ready`,
     missingHeader: `Missing required column: {field}`,
@@ -441,6 +445,10 @@ const translations = {
     importPartialSummary: `تم إنشاء {success} موظف وفشل {failed} صف. نزّل بيانات الناجحين وصحح الصفوف الفاشلة فقط.`,
     noCredentials: `لا توجد بيانات دخول متاحة للتنزيل.`,
     credentialsDownloaded: `تم تنزيل ملف بيانات الدخول لمرة واحدة.`,
+    documents: `الوثائق`,
+    employmentHistory: `السجل الوظيفي`,
+    managedByLifecycle: `تُدار من خلال الحركات الوظيفية`,
+    managedByLifecycleCopy: `المنصب والمدير ونوع التوظيف والحالة ونظام العمل مقفلة هنا بعد الإنشاء. استخدم السجل الوظيفي لتنفيذ حركة HR موثقة.`,
     importRowFailed: `تعذر إنشاء هذا الصف.`,
     rowValid: `جاهز`,
     missingHeader: `العمود المطلوب غير موجود: {field}`,
@@ -1101,6 +1109,16 @@ const openEmployeeModal = async employeeId => {
   elements.workEmail.readOnly = isEdit;
   elements.employeeCode.title = isEdit ? translate(`employeeCodeLocked`) : ``;
   elements.workEmail.title = isEdit ? translate(`emailLocked`) : ``;
+  [
+    elements.positionId,
+    elements.managerEmployeeId,
+    elements.employmentType,
+    elements.employmentStatus,
+    elements.workMode
+  ].forEach(field => {
+    field.disabled = isEdit;
+  });
+  if (elements.movementManagedNotice) elements.movementManagedNotice.hidden = !isEdit;
 
   renderPositionOptions(employee?.positionId || ``);
   renderManagerOptions(employee?.managerEmployeeId || ``, employee?.id || ``);
@@ -1340,6 +1358,7 @@ const safeEmployeeRecord = (values, authUid, existing = null) => ({
   employmentType: values.employmentType,
   employmentStatus: values.employmentStatus,
   workMode: values.workMode,
+  ...(existing?.lastMovementId ? { lastMovementId: existing.lastMovementId } : {}),
   createdAt: existing?.createdAt || serverTimestamp(),
   createdBy: existing?.createdBy || state.user.uid,
   updatedAt: serverTimestamp(),
