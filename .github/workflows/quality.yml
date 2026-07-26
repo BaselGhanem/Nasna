@@ -20,7 +20,6 @@ jobs:
     timeout-minutes: 25
     env:
       FIREBASE_CLI_DISABLE_UPDATE_CHECK: true
-      FIREBASE_EMULATORS_PATH: ${{ runner.temp }}/firebase-emulators
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -45,6 +44,8 @@ jobs:
 
       - name: Test Firestore authorization
         run: npm run test:rules
+        env:
+          FIREBASE_EMULATORS_PATH: ${{ runner.temp }}/firebase-emulators
 
       - name: Test responsive product flows
         run: npm run test:ui
