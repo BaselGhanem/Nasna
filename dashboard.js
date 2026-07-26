@@ -1,9 +1,9 @@
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-auth.js";
 import { doc, getDoc } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-firestore.js";
-import { auth } from "./firebase-config.js?v=20260725.9";
-import { db } from "./firestore-config.js?v=20260725.9";
+import { auth } from "./firebase-config.js?v=20260726.1";
+import { db } from "./firestore-config.js?v=20260726.1";
 
-const release = `20260725.9`;
+const release = `20260726.1`;
 const adminRoles = new Set([`super_admin`, `hr_admin`]);
 
 const translations = {
@@ -18,7 +18,7 @@ const translations = {
     accountActive: `Account active`,
     platformRoadmap: `Platform roadmap`,
     modulesHeading: `NASNA modules`,
-    stage: `Stage 07`,
+    stage: `Stage 09`,
     currentModule: `Current module`,
     completed: `Completed`,
     companyAccessTitle: `Company & Access`,
@@ -35,6 +35,10 @@ const translations = {
     myProfileDescription: `View your job assignment, reporting line, work details, and private employee information.`,
     managerProfileTitle: `My profile & team`,
     managerProfileDescription: `Open your employee file, then switch to the separate manager workspace for your direct reports.`,
+    documentsTitle: `Documents & Contracts`,
+    documentsDescription: `Employee document register, expiry monitoring, visibility controls, and secure references.`,
+    lifecycleTitle: `Employment Lifecycle`,
+    lifecycleDescription: `Immutable transfers, promotions, reporting changes, and employment history.`,
     planned: `Planned`,
     coreDescription: `People records, organizational structure, roles, and documents.`,
     timeDescription: `Attendance, shifts, leave, and working-time controls.`,
@@ -55,7 +59,7 @@ const translations = {
     accountActive: `الحساب فعّال`,
     platformRoadmap: `خارطة طريق المنصة`,
     modulesHeading: `أنظمة ناسنا`,
-    stage: `المرحلة 07`,
+    stage: `المرحلة 09`,
     currentModule: `النظام الحالي`,
     completed: `مكتمل`,
     companyAccessTitle: `الشركة والصلاحيات`,
@@ -72,6 +76,10 @@ const translations = {
     myProfileDescription: `اعرض تعيينك الوظيفي ومديرك المباشر وتفاصيل العمل والمعلومات الخاصة.`,
     managerProfileTitle: `ملفي وفريقي`,
     managerProfileDescription: `افتح ملفك كموظف، ثم انتقل إلى مساحة المدير المنفصلة لمتابعة مرؤوسيك المباشرين.`,
+    documentsTitle: `الوثائق والعقود`,
+    documentsDescription: `سجل وثائق الموظفين ومتابعة الانتهاء وضبط الظهور والمراجع الآمنة.`,
+    lifecycleTitle: `دورة حياة الموظف`,
+    lifecycleDescription: `سجل غير قابل للتعديل للنقل والترقيات وتغيير التبعية والحركات الوظيفية.`,
     planned: `مخطط`,
     coreDescription: `بيانات الموظفين والهيكل التنظيمي والصلاحيات والمستندات.`,
     timeDescription: `الحضور والمناوبات والإجازات وضوابط وقت العمل.`,
