@@ -21,6 +21,7 @@ import {
   loadManagerRequests,
   loadNotifications,
   loadOwnRequests,
+  loadRequestById,
   loadRequestComments,
   loadRequestEvents,
   loadRequestTypeVersions,
@@ -29,6 +30,7 @@ import {
   onAuthStateChanged,
   overdue,
   publishWorkflowDraft,
+  reconcileExpiredDelegations,
   release,
   requestTypeById,
   respondToInformation,
@@ -42,7 +44,7 @@ import {
   toDate,
   withdrawRequest,
   workflowById
-} from "./workflow-core.js?v=20260726.3";
+} from "./workflow-core.js?v=20260726.4";
 
 const pageType = document.body.dataset.page || `requests`;
 const storageKey = `nasna-language`;
@@ -100,6 +102,7 @@ const translations = {
     allStatuses: `All statuses`,
     noRequests: `No requests yet`,
     noRequestsCopy: `Choose a service to save a draft or submit your first request.`,
+    loadMore: `Load more`,
     newRequest: `New request`,
     restrictedNotice: `This request bypasses the manager and is visible only to you and authorized HR staff.`,
     priority: `Priority`,
@@ -318,6 +321,9 @@ const translations = {
     commentAdded: `Comment added.`,
     delegationCreated: `Delegation created.`,
     delegationCancelled: `Delegation cancelled.`,
+    invalidDelegationDates: `Choose a start date no later than today and a future end date.`,
+    delegateMissing: `Choose an active manager or HR administrator as the delegate.`,
+    delegationBatchLimit: `More than 80 open approvals need reassignment. Complete some approvals before creating or ending this delegation.`,
     noPermission: `You do not have access to this workspace.`,
     signedOutError: `Sign-out could not be completed.`,
     statusDRAFT: `Draft`,
@@ -369,6 +375,7 @@ const translations = {
     allStatuses: `كل الحالات`,
     noRequests: `لا توجد طلبات بعد`,
     noRequestsCopy: `اختر خدمة لحفظ مسودة أو إرسال أول طلب.`,
+    loadMore: `تحميل المزيد`,
     newRequest: `طلب جديد`,
     restrictedNotice: `يتجاوز هذا الطلب المدير ولا يظهر إلا لك ولموظفي HR المخولين.`,
     priority: `الأولوية`,
@@ -587,6 +594,9 @@ const translations = {
     commentAdded: `تمت إضافة التعليق.`,
     delegationCreated: `تم إنشاء التفويض.`,
     delegationCancelled: `تم إلغاء التفويض.`,
+    invalidDelegationDates: `اختر تاريخ بدء لا يتجاوز اليوم وتاريخ انتهاء لاحقًا.`,
+    delegateMissing: `اختر مديرًا فعالًا أو مسؤول موارد بشرية كمفوّض.`,
+    delegationBatchLimit: `يوجد أكثر من 80 موافقة مفتوحة تحتاج لإعادة تعيين. أغلق بعض الموافقات قبل إنشاء التفويض أو إنهائه.`,
     noPermission: `لا تملك صلاحية الوصول إلى هذه المساحة.`,
     signedOutError: `تعذر تسجيل الخروج.`,
     statusDRAFT: `مسودة`,
@@ -726,6 +736,11 @@ const elements = Object.fromEntries([
 let language = safeStorage.get(storageKey)
   || (navigator.language.startsWith(`ar`) ? `ar` : `en`);
 let requests = [];
+let requestPaging = {
+  cursor: null,
+  hasMore: false,
+  loading: false
+};
 let notifications = [];
 let delegations = [];
 let activeTypeId = ``;
@@ -808,6 +823,9 @@ const errorKey = error => ({
   [`direct-report-only`]: `teamRequestNeedsManager`,
   [`invalid-transition`]: `invalidTransition`,
   [`movement-not-effective-yet`]: `futureMovementNotice`,
+  [`invalid-delegation-dates`]: `invalidDelegationDates`,
+  [`delegate-missing`]: `delegateMissing`,
+  [`delegation-batch-limit`]: `delegationBatchLimit`,
   [`permission-denied`]: `noPermission`,
   [`FirebaseError: Missing or insufficient permissions.`]: `noPermission`
 }[error?.message] || (
@@ -907,11 +925,52 @@ const requestRow = record => {
   `;
 };
 
+const requestPageLoader = options => (
+  pageType === `requests`
+    ? loadOwnRequests(options)
+    : pageType === `approvals`
+      ? loadManagerRequests(options)
+      : loadHrRequests(options)
+);
+
+const loadRequestsPage = async (reset = true) => {
+  if (requestPaging.loading || (!reset && !requestPaging.hasMore)) {
+    return requests;
+  }
+  requestPaging.loading = true;
+  try {
+    const page = await requestPageLoader({
+      pageSize: 50,
+      cursor: reset ? null : requestPaging.cursor
+    });
+    const merged = new Map(
+      (reset ? [] : requests).map(record => [record.id, record])
+    );
+    page.records.forEach(record => merged.set(record.id, record));
+    requests = [...merged.values()].sort((left, right) => (
+      (toDate(right.createdAt)?.getTime() || 0)
+      - (toDate(left.createdAt)?.getTime() || 0)
+    ));
+    requestPaging.cursor = page.cursor;
+    requestPaging.hasMore = page.hasMore;
+    return requests;
+  } finally {
+    requestPaging.loading = false;
+  }
+};
+
 const renderRequests = () => {
   if (!elements.requestList) return;
   const visible = requests.filter(requestSearchMatches);
-  elements.requestList.innerHTML = visible.map(requestRow).join(``);
-  elements.requestEmpty.hidden = visible.length > 0;
+  const loadMore = requestPaging.hasMore
+    ? `
+      <button class="load-more-button" type="button" data-action="load-more">
+        ${escapeHtml(translate(`loadMore`))}
+      </button>
+    `
+    : ``;
+  elements.requestList.innerHTML = visible.map(requestRow).join(``) + loadMore;
+  elements.requestEmpty.hidden = visible.length > 0 || requestPaging.hasMore;
 };
 
 const catalogIcon = code => ({
@@ -962,20 +1021,22 @@ const renderCatalog = () => {
   elements.catalogEmpty.hidden = types.length > 0;
 };
 
+const requestCount = value => `${value}${requestPaging.hasMore ? `+` : ``}`;
+
 const renderRequestStats = () => {
-  if (elements.totalRequests) elements.totalRequests.textContent = String(requests.length);
+  if (elements.totalRequests) elements.totalRequests.textContent = requestCount(requests.length);
   if (elements.openRequests) {
-    elements.openRequests.textContent = String(
+    elements.openRequests.textContent = requestCount(
       requests.filter(record => !terminalStatuses.has(record.status) && record.status !== `DRAFT`).length
     );
   }
   if (elements.needsReply) {
-    elements.needsReply.textContent = String(
+    elements.needsReply.textContent = requestCount(
       requests.filter(record => record.status === `NEEDS_INFORMATION`).length
     );
   }
   if (elements.completedRequests) {
-    elements.completedRequests.textContent = String(
+    elements.completedRequests.textContent = requestCount(
       requests.filter(record => record.status === `COMPLETED`).length
     );
   }
@@ -986,13 +1047,13 @@ const renderManagerStats = () => {
     record.status === `PENDING_APPROVAL`
     && record.currentAssigneeIds.includes(state.user.uid)
   ));
-  if (elements.assignedCount) elements.assignedCount.textContent = String(assigned.length);
+  if (elements.assignedCount) elements.assignedCount.textContent = requestCount(assigned.length);
   if (elements.overdueCount) {
-    elements.overdueCount.textContent = String(assigned.filter(overdue).length);
+    elements.overdueCount.textContent = requestCount(assigned.filter(overdue).length);
   }
-  if (elements.teamRequestCount) elements.teamRequestCount.textContent = String(requests.length);
+  if (elements.teamRequestCount) elements.teamRequestCount.textContent = requestCount(requests.length);
   if (elements.managerNeedsInfo) {
-    elements.managerNeedsInfo.textContent = String(
+    elements.managerNeedsInfo.textContent = requestCount(
       requests.filter(record => record.status === `NEEDS_INFORMATION`).length
     );
   }
@@ -1000,18 +1061,18 @@ const renderManagerStats = () => {
 
 const renderHrStats = () => {
   const open = requests.filter(record => !terminalStatuses.has(record.status) && record.status !== `DRAFT`);
-  if (elements.hrOpenCount) elements.hrOpenCount.textContent = String(open.length);
+  if (elements.hrOpenCount) elements.hrOpenCount.textContent = requestCount(open.length);
   if (elements.hrAssignedCount) {
-    elements.hrAssignedCount.textContent = String(
+    elements.hrAssignedCount.textContent = requestCount(
       requests.filter(record => (
         record.status === `PENDING_FULFILLMENT`
         && record.currentAssigneeIds.includes(state.user.uid)
       )).length
     );
   }
-  if (elements.hrOverdueCount) elements.hrOverdueCount.textContent = String(open.filter(overdue).length);
+  if (elements.hrOverdueCount) elements.hrOverdueCount.textContent = requestCount(open.filter(overdue).length);
   if (elements.hrCompletedCount) {
-    elements.hrCompletedCount.textContent = String(
+    elements.hrCompletedCount.textContent = requestCount(
       requests.filter(record => record.status === `COMPLETED`).length
     );
   }
@@ -1056,7 +1117,7 @@ const renderReporting = () => {
     ? Math.round((submitted.filter(record => record.status === `REJECTED`).length / submitted.length) * 100)
     : 0;
 
-  elements.reportVolume.textContent = String(requests.length);
+  elements.reportVolume.textContent = requestCount(requests.length);
   elements.reportMedian.textContent = `${median.toFixed(median < 10 ? 1 : 0)}${translate(`hours`)}`;
   elements.reportP90.textContent = `${p90.toFixed(p90 < 10 ? 1 : 0)}${translate(`hours`)}`;
   elements.reportSla.textContent = `${slaRate}%`;
@@ -1516,7 +1577,7 @@ const saveRequestFromForm = async submit => {
       idempotencyKey: activeRequestIdempotencyKey
     });
     closeRequestForm();
-    requests = await loadOwnRequests();
+    await loadRequestsPage(true);
     notifications = await loadNotifications();
     renderCurrentPage();
     renderNotifications();
@@ -1652,11 +1713,7 @@ const closeDetail = () => {
 };
 
 const refreshRequests = async () => {
-  requests = pageType === `requests`
-    ? await loadOwnRequests()
-    : pageType === `approvals`
-      ? await loadManagerRequests()
-      : await loadHrRequests();
+  await loadRequestsPage(true);
   await loadRequestTypeVersions(requests);
   await ensureSlaNotifications(requests).catch(error => {
     console.warn(`NASNA SLA notification refresh skipped.`, error);
@@ -1667,6 +1724,21 @@ const refreshRequests = async () => {
 };
 
 const handleRequestListClick = async event => {
+  const loadMoreButton = event.target.closest(`[data-action="load-more"]`);
+  if (loadMoreButton) {
+    setButtonBusy(loadMoreButton, true);
+    try {
+      await loadRequestsPage(false);
+      await loadRequestTypeVersions(requests);
+      renderCurrentPage();
+    } catch (error) {
+      console.error(`NASNA request pagination error.`, error);
+      showToast(errorKey(error), true);
+    } finally {
+      setButtonBusy(loadMoreButton, false);
+    }
+    return;
+  }
   const row = event.target.closest(`[data-request-id]`);
   if (!row) return;
   const record = requests.find(item => item.id === row.dataset.requestId);
@@ -1993,17 +2065,20 @@ const initialize = async user => {
   if (pageType === `hr` && !isAdmin()) throw new Error(`hr-access-required`);
   if (isAdmin()) await ensureDefaultConfiguration();
   await loadConfiguration();
-  requests = pageType === `requests`
-    ? await loadOwnRequests()
-    : pageType === `approvals`
-      ? await loadManagerRequests()
-      : await loadHrRequests();
+  await loadRequestsPage(true);
   await loadRequestTypeVersions(requests);
   await ensureSlaNotifications(requests).catch(error => {
     console.warn(`NASNA SLA notification initialization skipped.`, error);
   });
   notifications = await loadNotifications();
-  if (pageType === `approvals`) delegations = await loadDelegations();
+  if (pageType === `approvals`) {
+    delegations = await loadDelegations();
+    const reconciled = await reconcileExpiredDelegations(delegations);
+    if (reconciled) {
+      await loadRequestsPage(true);
+      delegations = await loadDelegations();
+    }
+  }
   renderHeader();
   setLanguage(language);
   renderCurrentPage();
@@ -2011,7 +2086,11 @@ const initialize = async user => {
   reveal();
 
   const deepLinkId = new URLSearchParams(window.location.search).get(`request`);
-  const deepLinked = requests.find(record => record.id === deepLinkId);
+  const deepLinked = requests.find(record => record.id === deepLinkId)
+    || (deepLinkId
+      ? await loadRequestById(deepLinkId).catch(() => null)
+      : null);
+  if (deepLinked) await loadRequestTypeVersions([deepLinked]);
   if (deepLinked) await renderDetail(deepLinked);
 };
 
