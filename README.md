@@ -28,7 +28,7 @@ NASNA will be delivered progressively as independent but connected modules:
 
 ## Current Stage
 
-**Stage 10 — Requests, Approvals & Employee Self-Service**
+**Stage 10.5 — Production hardening for Requests, Approvals & Employee Self-Service**
 
 Stage 08 adds a tenant-isolated employee document register for contracts, identity records, permits, certificates, secure HTTPS references, visibility controls, and expiry monitoring. HR Admin and Super Admin manage the register; employees can read only records explicitly shared with their own login. Firebase Storage is not used because Cloud Storage requires the Blaze plan. The Spark-compatible release stores document metadata and controlled references in Firestore.
 
@@ -41,6 +41,8 @@ Stage 10 adds a versioned request and workflow engine with three separate respon
 - HR operates fulfillment, restricted requests, server-backed configuration drafts, previews, immutable published workflow versions, retirement controls, service reporting, and metadata-only CSV exports.
 
 There is no self-approval. A manager's personal request goes to their upper manager or an independent HR fallback. Confidential requests bypass the reporting line. Final contact, private-data, document, and movement changes are applied only by HR and are linked atomically to the Stage 10 request ID.
+
+Stage 10.5 binds every audit entry to an authorized companion mutation, binds each request-counter increment to the request created in the same atomic write, routes new approvals through active delegations, blocks expired delegates in Firestore rules, fixes mobile navigation overflow, replaces the legacy Excel parser, and paginates request queues with matching composite indexes. New workspaces auto-install only the low-risk General HR request. Existing published tenant configuration is never retired automatically.
 
 The Spark release does not use paid Cloud Functions or a server scheduler. SLA due dates and overdue indicators are stored and evaluated in the application, and a deterministic in-app SLA notification is created when an assigned workspace opens. An overdue request is never auto-approved. Assignment notifications are idempotent and written after the atomic request, counter, event, and task transaction so Firestore rule-evaluation limits cannot create duplicate requests or messages. Email, WhatsApp, leave, attendance, payroll, loans, recruitment, performance, and training request types remain inactive until their owning stages are implemented.
 
@@ -63,6 +65,8 @@ firebase deploy --only firestore:ai-studio-2f881b3f-5867-4dfd-b360-c85f26c6ded4
 
 The Firebase project is defined in `.firebaserc`. `firebase.json` binds both
 `firestore.rules` and `firestore.indexes.json` to the named database.
+
+Deploy the rules and indexes before merging a UI release that depends on them. The complete Stage 10.5 deployment order and acceptance matrix are documented in [`STAGE_10_5_RUNBOOK_AR.md`](STAGE_10_5_RUNBOOK_AR.md).
 
 ## Data architecture
 
@@ -113,6 +117,7 @@ Workflow drafts are visible and editable only by HR administrators. Publishing c
 - A restricted request routes directly to an independent HR administrator and is excluded from the manager's team history.
 - A future-dated employment movement remains pending until its effective date because Spark has no background scheduler.
 - Publish `firestore.rules` whenever a Stage 10 release changes its schema or authorization behavior.
+- Treat a metric ending with `+` as a lower bound until all request pages are loaded.
 
 ### Monitoring
 
