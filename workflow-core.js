@@ -9,17 +9,19 @@ import {
   getDoc,
   getDocs,
   limit,
+  orderBy,
   query,
   runTransaction,
   serverTimestamp,
+  startAfter,
   updateDoc,
   where,
   writeBatch
 } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-firestore.js";
-import { auth } from "./firebase-config.js?v=20260726.3";
-import { db } from "./firestore-config.js?v=20260726.3";
+import { auth } from "./firebase-config.js?v=20260726.4";
+import { db } from "./firestore-config.js?v=20260726.4";
 
-const release = `20260726.3`;
+const release = `20260726.4`;
 const adminRoles = new Set([`super_admin`, `hr_admin`]);
 const terminalStatuses = new Set([
   `COMPLETED`,
@@ -60,6 +62,7 @@ const choice = (value, labelEn, labelAr) => ({ value, labelEn, labelAr });
 const defaultDefinitions = [
   {
     code: `general_hr`,
+    pilotDefault: true,
     nameEn: `General HR request`,
     nameAr: `طلب عام للموارد البشرية`,
     descriptionEn: `Ask HR for support through a tracked, auditable request.`,
@@ -438,7 +441,9 @@ const ensureDefaultConfiguration = async () => {
 
   const batch = writeBatch(db);
   let pendingWrites = 0;
-  defaultDefinitions.forEach(definition => {
+  defaultDefinitions
+    .filter(definition => definition.pilotDefault === true)
+    .forEach(definition => {
     const typeId = `${definition.code}__v1`;
     const workflowId = `${definition.code}__workflow_v1`;
     const steps = definition.steps.map((step, index) => ({
@@ -849,6 +854,33 @@ const stepForResolver = (workflow, resolver, fallbackIndex = 0) => {
     };
 };
 
+const activeDelegationRoute = (managerMember, excludedUid) => {
+  if (
+    !managerMember?.activeDelegationId
+    || !managerMember.activeDelegateUid
+  ) {
+    return null;
+  }
+  const startAt = toDate(managerMember.activeDelegationStartAt);
+  const endAt = toDate(managerMember.activeDelegationEndAt);
+  const now = Date.now();
+  const delegate = memberByUid(managerMember.activeDelegateUid);
+  if (
+    !startAt
+    || !endAt
+    || startAt.getTime() > now
+    || endAt.getTime() <= now
+    || delegate?.status !== `active`
+    || delegate.uid === excludedUid
+  ) {
+    return null;
+  }
+  return {
+    id: managerMember.activeDelegationId,
+    delegateUid: delegate.uid
+  };
+};
+
 const resolveRoute = (requestType, requesterEmployee, workflow, excludedUid) => {
   if (!requesterEmployee) throw new Error(`employee-file-required`);
   const managerEmployee = requesterEmployee.managerEmployeeId
@@ -865,11 +897,18 @@ const resolveRoute = (requestType, requesterEmployee, workflow, excludedUid) => 
     && managerMember?.status === `active`
   ) {
     const step = stepForResolver(workflow, `direct_manager`, 0);
+    const delegation = activeDelegationRoute(managerMember, excludedUid);
     return {
       kind: `manager`,
       status: `PENDING_APPROVAL`,
       step,
-      assignees: [managerEmployee.authUid]
+      assignees: [
+        delegation?.delegateUid || managerEmployee.authUid
+      ],
+      delegationId: delegation?.id || ``,
+      originalAssignees: delegation
+        ? [managerEmployee.authUid]
+        : []
     };
   }
 
@@ -882,7 +921,9 @@ const resolveRoute = (requestType, requesterEmployee, workflow, excludedUid) => 
     step,
     assignees: step.mode === `parallel_any`
       ? hrMembers.map(member => member.uid)
-      : [hrMembers[0].uid]
+      : [hrMembers[0].uid],
+    delegationId: ``,
+    originalAssignees: []
   };
 };
 
@@ -1147,6 +1188,8 @@ const createRequest = async ({
     transaction.set(counterReference, {
       companyId: state.companyId,
       value: nextValue,
+      lastRequestId: requestId,
+      lastRequestNumber: requestNumber,
       updatedAt: serverTimestamp(),
       updatedBy: state.user.uid
     });
@@ -1155,6 +1198,7 @@ const createRequest = async ({
       id: requestId,
       companyId: state.companyId,
       requestNumber,
+      sequence: nextValue,
       typeId: requestType.id,
       typeCode: requestType.code,
       typeVersion: requestType.version,
@@ -1172,8 +1216,8 @@ const createRequest = async ({
       currentAssigneeIds: submit ? route.assignees : [],
       previousAssigneeIds: [],
       slaRemainingHours: 0,
-      delegationId: ``,
-      originalAssigneeIds: [],
+      delegationId: submit ? route.delegationId : ``,
+      originalAssigneeIds: submit ? route.originalAssignees : [],
       routeKind: submit ? route.kind : ``,
       payload,
       confidentiality: requestType.confidentiality,
@@ -1243,6 +1287,8 @@ const submitDraft = async requestId => {
       status: route.status,
       currentStepType: route.step.type,
       currentAssigneeIds: route.assignees,
+      delegationId: route.delegationId,
+      originalAssigneeIds: route.originalAssignees,
       routeKind: route.kind,
       dueAt: dueTimestamp(route.step.slaHours),
       submittedAt: serverTimestamp(),
@@ -1708,7 +1754,7 @@ const movementTypeMatches = movement => ({
 const activeEmploymentStatuses = new Set([
   `active`,
   `probation`,
-  `notice`
+  `leave`
 ]);
 
 const employeeIsActive = employee => (
@@ -2139,52 +2185,135 @@ const cancelRequest = async (requestId, note = ``) => {
   });
 };
 
-const loadOwnRequests = async () => {
+const pagedResult = (snapshot, pageSize) => ({
+  records: snapshotRows(snapshot),
+  cursor: snapshot.docs.at(-1) || null,
+  hasMore: snapshot.size === pageSize
+});
+
+const loadOwnRequests = async options => {
+  const pageSize = Number(options?.pageSize || 200);
+  const constraints = [
+    where(`requesterUid`, `==`, state.user.uid),
+    orderBy(`createdAt`, `desc`)
+  ];
+  if (options?.cursor) constraints.push(startAfter(options.cursor));
+  constraints.push(limit(pageSize));
   const snapshot = await getDocs(query(
     companyCollection(`requests`),
-    where(`requesterUid`, `==`, state.user.uid),
-    limit(200)
+    ...constraints
   ));
-  return snapshotRows(snapshot).sort((a, b) => (
-    (toDate(b.createdAt)?.getTime() || 0) - (toDate(a.createdAt)?.getTime() || 0)
-  ));
+  const result = pagedResult(snapshot, pageSize);
+  return options ? result : result.records;
 };
 
-const loadManagerRequests = async () => {
-  if (!state.ownEmployee) return [];
+const loadManagerRequests = async options => {
+  if (!state.ownEmployee) {
+    return options
+      ? {
+          records: [],
+          cursor: {
+            assigned: null,
+            team: null,
+            assignedDone: true,
+            teamDone: true
+          },
+          hasMore: false
+        }
+      : [];
+  }
+  const pageSize = Number(options?.pageSize || 200);
+  const assignedDone = Boolean(options?.cursor?.assignedDone);
+  const teamDone = Boolean(options?.cursor?.teamDone);
+  const assignedConstraints = [
+    where(`currentAssigneeIds`, `array-contains`, state.user.uid),
+    orderBy(`createdAt`, `desc`)
+  ];
+  const teamConstraints = [
+    where(`managerEmployeeId`, `==`, state.ownEmployee.id),
+    where(`confidentiality`, `==`, `normal`),
+    orderBy(`createdAt`, `desc`)
+  ];
+  if (options?.cursor?.assigned) {
+    assignedConstraints.push(startAfter(options.cursor.assigned));
+  }
+  if (options?.cursor?.team) {
+    teamConstraints.push(startAfter(options.cursor.team));
+  }
+  assignedConstraints.push(limit(pageSize));
+  teamConstraints.push(limit(pageSize));
   const [assignedSnapshot, teamSnapshot] = await Promise.all([
-    getDocs(query(
-      companyCollection(`requests`),
-      where(`currentAssigneeIds`, `array-contains`, state.user.uid),
-      limit(200)
-    )),
-    getDocs(query(
-      companyCollection(`requests`),
-      where(`managerEmployeeId`, `==`, state.ownEmployee.id),
-      where(`confidentiality`, `==`, `normal`),
-      limit(200)
-    ))
+    assignedDone
+      ? Promise.resolve(null)
+      : getDocs(query(
+          companyCollection(`requests`),
+          ...assignedConstraints
+        )),
+    teamDone
+      ? Promise.resolve(null)
+      : getDocs(query(
+          companyCollection(`requests`),
+          ...teamConstraints
+        ))
   ]);
   const rows = new Map();
-  [...snapshotRows(assignedSnapshot), ...snapshotRows(teamSnapshot)].forEach(row => {
+  [
+    ...(assignedSnapshot ? snapshotRows(assignedSnapshot) : []),
+    ...(teamSnapshot ? snapshotRows(teamSnapshot) : [])
+  ].forEach(row => {
     if (row.confidentiality === `normal` || row.currentAssigneeIds.includes(state.user.uid)) {
       rows.set(row.id, row);
     }
   });
-  return [...rows.values()].sort((a, b) => (
+  const records = [...rows.values()].sort((a, b) => (
     (toDate(b.createdAt)?.getTime() || 0) - (toDate(a.createdAt)?.getTime() || 0)
   ));
+  if (!options) return records;
+  const nextAssignedDone = assignedDone
+    || !assignedSnapshot
+    || assignedSnapshot.size < pageSize;
+  const nextTeamDone = teamDone
+    || !teamSnapshot
+    || teamSnapshot.size < pageSize;
+  return {
+    records,
+    cursor: {
+      assigned: assignedSnapshot?.docs.at(-1)
+        || options?.cursor?.assigned
+        || null,
+      team: teamSnapshot?.docs.at(-1)
+        || options?.cursor?.team
+        || null,
+      assignedDone: nextAssignedDone,
+      teamDone: nextTeamDone
+    },
+    hasMore: !nextAssignedDone || !nextTeamDone
+  };
 };
 
-const loadHrRequests = async () => {
-  if (!isAdmin()) return [];
+const loadHrRequests = async options => {
+  if (!isAdmin()) {
+    return options
+      ? { records: [], cursor: null, hasMore: false }
+      : [];
+  }
+  const pageSize = Number(options?.pageSize || 250);
+  const constraints = [orderBy(`createdAt`, `desc`)];
+  if (options?.cursor) constraints.push(startAfter(options.cursor));
+  constraints.push(limit(pageSize));
   const snapshot = await getDocs(query(
     companyCollection(`requests`),
-    limit(250)
+    ...constraints
   ));
-  return snapshotRows(snapshot).sort((a, b) => (
-    (toDate(b.createdAt)?.getTime() || 0) - (toDate(a.createdAt)?.getTime() || 0)
-  ));
+  const result = pagedResult(snapshot, pageSize);
+  return options ? result : result.records;
+};
+
+const loadRequestById = async requestId => {
+  const snapshot = await getDoc(companyDoc(`requests`, requestId));
+  return snapshot.exists()
+    ? { id: snapshot.id, ...snapshot.data() }
+    : null;
 };
 
 const loadRequestTypeVersions = async records => {
@@ -2376,6 +2505,9 @@ const createDelegation = async (delegateUid, startDate, endDate) => {
     && record.currentAssigneeIds.includes(state.user.uid)
     && record.requesterUid !== delegateUid
   ));
+  if (openRequests.length > 80) {
+    throw new Error(`delegation-batch-limit`);
+  }
   const taskPairs = await Promise.all(openRequests.map(async record => ({
     record,
     task: await pendingTaskFor(record.id)
@@ -2391,6 +2523,14 @@ const createDelegation = async (delegateUid, startDate, endDate) => {
     status: `active`,
     createdAt: serverTimestamp(),
     createdBy: state.user.uid,
+    updatedAt: serverTimestamp(),
+    updatedBy: state.user.uid
+  });
+  batch.update(companyDoc(`members`, state.user.uid), {
+    activeDelegationId: id,
+    activeDelegateUid: delegateUid,
+    activeDelegationStartAt: startAt,
+    activeDelegationEndAt: endAt,
     updatedAt: serverTimestamp(),
     updatedBy: state.user.uid
   });
@@ -2473,6 +2613,9 @@ const cancelDelegation = async id => {
     record.status === `PENDING_APPROVAL`
     && record.delegationId === id
   ));
+  if (delegatedRequests.length > 80) {
+    throw new Error(`delegation-batch-limit`);
+  }
   const taskPairs = await Promise.all(delegatedRequests.map(async record => ({
     record,
     task: await pendingTaskFor(record.id, delegation.delegateUid)
@@ -2480,6 +2623,14 @@ const cancelDelegation = async id => {
   const batch = writeBatch(db);
   batch.update(delegationReference, {
     status: `cancelled`,
+    updatedAt: serverTimestamp(),
+    updatedBy: state.user.uid
+  });
+  batch.update(companyDoc(`members`, delegation.delegatorUid), {
+    activeDelegationId: ``,
+    activeDelegateUid: ``,
+    activeDelegationStartAt: null,
+    activeDelegationEndAt: null,
     updatedAt: serverTimestamp(),
     updatedBy: state.user.uid
   });
@@ -2550,6 +2701,18 @@ const cancelDelegation = async id => {
   await batch.commit();
 };
 
+const reconcileExpiredDelegations = async records => {
+  const expired = records.filter(record => (
+    record.status === `active`
+    && record.delegatorUid === state.user.uid
+    && (toDate(record.endAt)?.getTime() || 0) <= Date.now()
+  ));
+  for (const record of expired) {
+    await cancelDelegation(record.id);
+  }
+  return expired.length;
+};
+
 const overdue = record => {
   const due = toDate(record.dueAt);
   return Boolean(
@@ -2591,6 +2754,7 @@ export {
   loadManagerRequests,
   loadNotifications,
   loadOwnRequests,
+  loadRequestById,
   loadRequestTypeVersions,
   loadRequestComments,
   loadRequestEvents,
@@ -2600,6 +2764,7 @@ export {
   onAuthStateChanged,
   overdue,
   publishWorkflowDraft,
+  reconcileExpiredDelegations,
   release,
   requestTypeById,
   respondToInformation,
