@@ -1,0 +1,258 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#099999">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="NASNA">
+  <title>HR Operations | NASNA</title>
+  <link rel="icon" href="assets/brand/nasna-mark.svg" type="image/svg+xml">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Almarai:wght@400;700;800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="workflow.css?v=20260726.3">
+</head>
+<body class="is-checking-auth" data-page="hr">
+  <div class="auth-loader" id="authLoader" role="status" aria-live="polite">
+    <img src="assets/brand/nasna-mark.svg" width="56" height="56" alt="">
+    <span data-i18n="checkingAccess">Checking your HR access…</span>
+  </div>
+
+  <div class="workflow-app" id="workflowApp" hidden>
+    <header class="topbar">
+      <a class="brand-link" href="dashboard.html?v=20260726.3" aria-label="NASNA dashboard">
+        <img src="assets/brand/nasna-mark.svg" width="42" height="42" alt="">
+        <span data-i18n="brandName">NASNA</span>
+      </a>
+      <nav class="topbar-actions" aria-label="Workspace navigation">
+        <a class="topbar-link" href="dashboard.html?v=20260726.3">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11 12 4l8 7v9h-6v-6h-4v6H4z"/></svg>
+          <span data-i18n="dashboard">Dashboard</span>
+        </a>
+        <a class="topbar-link" href="requests.html?v=20260726.3">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h9l4 4v14H6zM15 3v5h5M9 12h7m-7 4h7"/></svg>
+          <span data-i18n="myRequests">My requests</span>
+        </a>
+        <a class="topbar-link" id="approvalsNav" href="approvals.html?v=20260726.3" hidden>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16v16H4zM8 9h8m-8 4h5m-5 4h7"/><path d="m15 13 1.5 1.5L20 11"/></svg>
+          <span data-i18n="approvalInbox">Approval inbox</span>
+        </a>
+        <a class="topbar-link is-current" href="hr-operations.html?v=20260726.3">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19h16M6 16V8h12v8M9 8V5h6v3"/><path d="M9 12h6"/></svg>
+          <span data-i18n="hrOperations">HR operations</span>
+        </a>
+        <button class="icon-button" id="notificationButton" type="button" aria-label="Notifications">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg>
+          <span class="notification-count" id="notificationCount" hidden>0</span>
+        </button>
+        <button class="language-button" id="languageButton" type="button">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18"/></svg>
+          <span id="languageLabel">العربية</span>
+        </button>
+        <button class="signout-button" id="signOutButton" type="button">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 5H5v14h5M14 8l4 4-4 4m4-4H9"/></svg>
+          <span data-i18n="signOut">Sign out</span>
+        </button>
+      </nav>
+    </header>
+
+    <main class="page-shell">
+      <section class="page-heading">
+        <div>
+          <p class="eyebrow" data-i18n="hrWorkspace">HR operations workspace</p>
+          <h1 data-i18n="hrOperationsTitle">Requests, fulfillment & control</h1>
+          <p data-i18n="hrOperationsCopy">Operate the company request queue, apply approved outcomes, inspect immutable workflow versions, and monitor service performance.</p>
+        </div>
+        <div class="signed-in-card">
+          <span class="avatar" id="signedInAvatar">H</span>
+          <span><small data-i18n="signedInAs">Signed in as</small><strong id="signedInEmail"></strong></span>
+        </div>
+      </section>
+
+      <section class="boundary-banner">
+        <div>
+          <span class="boundary-icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 5 6v5c0 4.8 2.9 8.2 7 10 4.1-1.8 7-5.2 7-10V6l-7-3Z"/><path d="m9.5 12 1.7 1.7 3.5-3.7"/></svg>
+          </span>
+          <span>
+            <strong data-i18n="atomicFulfillment">Atomic fulfillment with an immutable audit trail</strong>
+            <p data-i18n="atomicFulfillmentCopy">Completing a data, document, or movement request updates the owning Stage 7–9 record and the Stage 10 request in one transaction linked by request ID.</p>
+          </span>
+        </div>
+        <span class="boundary-chip" data-i18n="tenantIsolated">Tenant isolated</span>
+      </section>
+
+      <section class="stats-grid" aria-label="HR request statistics">
+        <article class="stat-card"><span data-i18n="openQueue">Open queue</span><strong id="hrOpenCount">0</strong><small data-i18n="nonTerminalRequests">Non-terminal requests</small></article>
+        <article class="stat-card"><span data-i18n="assignedToHr">Assigned to HR</span><strong id="hrAssignedCount">0</strong><small data-i18n="readyForHr">Ready for HR action</small></article>
+        <article class="stat-card"><span data-i18n="overdue">Overdue</span><strong id="hrOverdueCount">0</strong><small data-i18n="neverAutoApproved">Never auto-approved</small></article>
+        <article class="stat-card"><span data-i18n="completed">Completed</span><strong id="hrCompletedCount">0</strong><small data-i18n="fulfilledRequests">Fulfilled requests</small></article>
+      </section>
+
+      <div class="tabs" role="tablist" aria-label="HR operations sections">
+        <button class="tab-button is-active" type="button" data-tab="operations" data-i18n="operations">Operations</button>
+        <button class="tab-button" type="button" data-tab="configuration" data-i18n="workflowConfiguration">Workflow configuration</button>
+        <button class="tab-button" type="button" data-tab="reporting" data-i18n="serviceReporting">Service reporting</button>
+      </div>
+
+      <section id="operationsTab" data-tab-panel="operations">
+        <div class="content-grid content-grid--operations">
+          <article class="panel">
+            <header class="panel-header">
+              <div><p class="eyebrow" data-i18n="operations">Operations</p><h2 data-i18n="companyRequestQueue">Company request queue</h2></div>
+            </header>
+            <div class="list-toolbar">
+              <label class="search-field"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m16 16 4 4"/></svg><input id="requestSearch" type="search" autocomplete="off" data-i18n-placeholder="searchRequests" placeholder="Search requests"></label>
+              <select class="filter-select" id="requestStatusFilter" aria-label="Status filter">
+                <option value="" data-i18n="allStatuses">All statuses</option>
+                <option value="PENDING_APPROVAL" data-i18n="statusPENDING_APPROVAL">Pending approval</option>
+                <option value="NEEDS_INFORMATION" data-i18n="statusNEEDS_INFORMATION">Needs information</option>
+                <option value="PENDING_FULFILLMENT" data-i18n="statusPENDING_FULFILLMENT">Pending fulfillment</option>
+                <option value="COMPLETED" data-i18n="statusCOMPLETED">Completed</option>
+                <option value="REJECTED" data-i18n="statusREJECTED">Rejected</option>
+                <option value="CANCELLED" data-i18n="statusCANCELLED">Cancelled</option>
+              </select>
+            </div>
+            <div class="request-list" id="requestList"></div>
+            <div class="empty-state" id="requestEmpty" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16v16H4zM8 9h8m-8 4h8"/></svg><h3 data-i18n="queueClear">The queue is clear</h3><p data-i18n="queueClearCopy">Requests will appear as employees and managers submit them.</p></div>
+          </article>
+
+          <aside class="panel">
+            <header class="panel-header"><div><p class="eyebrow" data-i18n="serviceControls">Service controls</p><h2 data-i18n="operatingRules">Operating rules</h2></div></header>
+            <div class="config-list">
+              <article class="config-item"><header><h3 data-i18n="noAutomaticApproval">No automatic approval</h3><span class="mini-chip" data-i18n="enforced">Enforced</span></header><p data-i18n="noAutomaticApprovalCopy">An SLA breach is highlighted but never changes the decision.</p></article>
+              <article class="config-item"><header><h3 data-i18n="restrictedRequests">Restricted requests</h3><span class="mini-chip mini-chip--restricted" data-i18n="hrOnly">HR only</span></header><p data-i18n="restrictedRequestsCopy">Confidential requests bypass the reporting line and never appear in a manager team view.</p></article>
+              <article class="config-item"><header><h3 data-i18n="sparkSafe">Firebase Spark safe</h3><span class="mini-chip" data-i18n="inApp">In-app</span></header><p data-i18n="sparkSafeCopy">Notifications are in-app. Overdue state is calculated when the workspace opens because no paid scheduler is used.</p></article>
+            </div>
+          </aside>
+        </div>
+      </section>
+
+      <section id="configurationTab" data-tab-panel="configuration" hidden>
+        <article class="panel">
+          <header class="panel-header">
+            <div><p class="eyebrow" data-i18n="publishedVersions">Published versions</p><h2 data-i18n="requestTypesAndWorkflows">Request types & workflows</h2><p data-i18n="immutableVersionCopy">Published versions are immutable. A future change must create a new version so historical requests keep their original definition.</p></div>
+            <div class="panel-actions">
+              <span class="mini-chip" id="configurationCount">0</span>
+              <button class="primary-button" id="openConfigurationButton" type="button">
+                <span aria-hidden="true">＋</span>
+                <span data-i18n="newRequestType">New request type</span>
+              </button>
+            </div>
+          </header>
+          <section class="configuration-drafts" id="configurationDraftSection">
+            <div class="subsection-heading">
+              <div><p class="eyebrow" data-i18n="configurationDrafts">Configuration drafts</p><h3 data-i18n="draftPreviewPublish">Draft, preview & publish</h3></div>
+              <span class="mini-chip" id="configurationDraftCount">0</span>
+            </div>
+            <div class="config-list" id="configurationDraftList"></div>
+            <p class="inline-empty" id="configurationDraftEmpty" data-i18n="noConfigurationDrafts">No configuration drafts.</p>
+          </section>
+          <div class="config-list" id="configurationList"></div>
+        </article>
+      </section>
+
+      <section id="reportingTab" data-tab-panel="reporting" hidden>
+        <div class="reporting-toolbar">
+          <div><p class="eyebrow" data-i18n="serviceReporting">Service reporting</p><h2 data-i18n="operationalReport">Operational report</h2></div>
+          <button class="secondary-button" id="exportReportButton" type="button" data-i18n="exportCsv">Export CSV</button>
+        </div>
+        <div class="report-grid">
+          <article class="report-card"><span data-i18n="requestVolume">Request volume</span><strong id="reportVolume">0</strong><small data-i18n="requestVolumeCopy">All requests in the current company.</small></article>
+          <article class="report-card"><span data-i18n="medianCycleTime">Median cycle time</span><strong id="reportMedian">0h</strong><small data-i18n="medianCycleTimeCopy">Median submitted-to-completed duration.</small></article>
+          <article class="report-card"><span data-i18n="p90CycleTime">P90 cycle time</span><strong id="reportP90">0h</strong><small data-i18n="p90CycleTimeCopy">90% of completed requests finish within this time.</small></article>
+          <article class="report-card"><span data-i18n="slaCompliance">SLA compliance</span><strong id="reportSla">100%</strong><small data-i18n="slaComplianceCopy">Open or completed requests that stayed within due time.</small><div class="sla-bar"><span id="reportSlaBar" style="width:100%"></span></div></article>
+          <article class="report-card"><span data-i18n="informationReturnRate">Information return rate</span><strong id="reportInfoRate">0%</strong><small data-i18n="informationReturnRateCopy">Requests that needed additional employee information.</small></article>
+          <article class="report-card"><span data-i18n="rejectionRate">Rejection rate</span><strong id="reportRejectionRate">0%</strong><small data-i18n="rejectionRateCopy">Rejected requests as a share of submitted requests.</small></article>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <aside class="notification-panel" id="notificationPanel" aria-label="Notifications">
+    <header><div><p class="eyebrow" data-i18n="updates">Updates</p><h2 data-i18n="notifications">Notifications</h2></div><button class="modal-close" id="closeNotifications" type="button" aria-label="Close"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button></header>
+    <div class="notification-list" id="notificationList"></div>
+    <div class="empty-state" id="notificationEmpty" hidden><h3 data-i18n="noNotifications">No notifications</h3><p data-i18n="noNotificationsCopy">Assignment and status updates will appear here.</p></div>
+  </aside>
+  <div class="backdrop" id="notificationBackdrop" hidden></div>
+
+  <div class="modal" id="detailModal" hidden>
+    <article class="modal-card modal-card--detail" role="dialog" aria-modal="true" aria-labelledby="detailTitle">
+      <header class="modal-header"><div><p class="eyebrow" id="detailNumber">—</p><h2 id="detailTitle">—</h2><p id="detailSubtitle"></p></div><button class="modal-close" id="closeDetailModal" type="button" aria-label="Close"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button></header>
+      <div class="detail-body">
+        <div>
+          <section class="detail-section"><h3 data-i18n="requestSummary">Request summary</h3><dl class="detail-grid" id="detailSummary"></dl></section>
+          <section class="detail-section"><h3 data-i18n="submittedInformation">Submitted information</h3><dl class="payload-list" id="detailPayload"></dl></section>
+          <section class="detail-section"><h3 data-i18n="conversation">Conversation</h3><div class="comment-list" id="commentList"></div><form class="comment-form" id="commentForm"><textarea id="commentBody" maxlength="2000" data-i18n-placeholder="writeComment" placeholder="Write a comment"></textarea><label class="field-label"><input id="hrOnlyComment" type="checkbox"> <span data-i18n="hrOnlyComment">HR-only note</span></label><button class="secondary-button" type="submit" data-i18n="addComment">Add comment</button></form></section>
+        </div>
+        <div>
+          <section class="detail-section"><h3 data-i18n="timeline">Timeline</h3><div class="timeline" id="detailTimeline"></div></section>
+          <section class="detail-section" id="detailActionSection">
+            <h3 data-i18n="hrAction">HR action</h3>
+            <p class="spark-note" id="futureMovementNotice" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span data-i18n="futureMovementNotice">A future-dated movement stays pending until its effective date. Spark does not run a paid background scheduler.</span></p>
+            <form class="decision-form" id="decisionForm">
+              <div class="form-field"><label for="decisionNote" data-i18n="fulfillmentNote">Fulfillment note</label><textarea id="decisionNote" maxlength="2000" data-i18n-placeholder="fulfillmentNotePlaceholder" placeholder="Describe what HR completed"></textarea></div>
+              <div class="form-field"><label for="fulfillmentReference" data-i18n="reference">Reference</label><input id="fulfillmentReference" type="text" maxlength="300" data-i18n-placeholder="referencePlaceholder" placeholder="Letter number, external reference, or secure link"></div>
+              <p class="form-error" id="decisionError" role="alert"></p>
+              <div class="detail-actions">
+                <button class="primary-button" type="button" data-decision="fulfill" data-i18n="completeAndApply">Complete & apply</button>
+                <button class="secondary-button" type="button" data-decision="needs_information" data-i18n="requestInformation">Request information</button>
+                <button class="danger-button" type="button" data-decision="cancel" data-i18n="cancelRequest">Cancel request</button>
+              </div>
+            </form>
+          </section>
+        </div>
+      </div>
+    </article>
+  </div>
+
+  <div class="modal" id="configurationModal" hidden>
+    <article class="modal-card modal-card--configuration" role="dialog" aria-modal="true" aria-labelledby="configurationModalTitle">
+      <header class="modal-header">
+        <div><p class="eyebrow" data-i18n="configurationDesigner">Configuration designer</p><h2 id="configurationModalTitle" data-i18n="requestTypeDraft">Request type draft</h2><p data-i18n="configurationDesignerCopy">Build and preview a controlled request version. Publishing makes it immutable.</p></div>
+        <button class="modal-close" id="closeConfigurationModal" type="button" aria-label="Close"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button>
+      </header>
+      <form id="configurationForm">
+        <div class="configuration-designer">
+          <div class="configuration-editor">
+            <div class="form-grid">
+              <div class="form-field"><label for="configurationCode" data-i18n="configurationCode">Code</label><input id="configurationCode" type="text" maxlength="40" pattern="[a-z][a-z0-9_]{2,39}" placeholder="employment_letter" required></div>
+              <div class="form-field"><label for="configurationSla" data-i18n="configurationSla">Total SLA hours</label><input id="configurationSla" type="number" min="1" max="8760" value="24" required></div>
+              <div class="form-field"><label for="configurationNameEn" data-i18n="nameEnglish">English name</label><input id="configurationNameEn" type="text" maxlength="120" required></div>
+              <div class="form-field"><label for="configurationNameAr" data-i18n="nameArabic">Arabic name</label><input id="configurationNameAr" type="text" maxlength="120" dir="rtl" required></div>
+              <div class="form-field form-field--wide"><label for="configurationDescriptionEn" data-i18n="descriptionEnglish">English description</label><textarea id="configurationDescriptionEn" maxlength="500"></textarea></div>
+              <div class="form-field form-field--wide"><label for="configurationDescriptionAr" data-i18n="descriptionArabic">Arabic description</label><textarea id="configurationDescriptionAr" maxlength="500" dir="rtl"></textarea></div>
+              <div class="form-field"><label for="configurationCategory" data-i18n="category">Category</label><select id="configurationCategory"><option value="general">General</option><option value="personal_data">Personal data</option><option value="documents">Documents</option><option value="confidential">Confidential</option><option value="team">Team</option><option value="correction">Correction</option><option value="custom">Custom</option></select></div>
+              <div class="form-field"><label for="configurationConfidentiality" data-i18n="confidentiality">Confidentiality</label><select id="configurationConfidentiality"><option value="normal" data-i18n="normalVisibility">Normal</option><option value="restricted" data-i18n="restrictedVisibility">Restricted · HR only</option></select></div>
+              <div class="form-field"><label for="configurationSubjectMode" data-i18n="subjectMode">Subject</label><select id="configurationSubjectMode"><option value="self" data-i18n="employeeSelf">Employee self</option><option value="direct_report" data-i18n="directReport">Direct report</option></select></div>
+              <div class="form-field"><label for="configurationResolver" data-i18n="initialResolver">Initial resolver</label><select id="configurationResolver"><option value="direct_manager" data-i18n="routeManager">Manager approval</option><option value="hr" data-i18n="routeHr">HR fulfillment</option></select></div>
+            </div>
+            <section class="field-designer">
+              <header><div><p class="eyebrow" data-i18n="formFields">Form fields</p><h3 data-i18n="controlledFormSchema">Controlled form schema</h3></div><button class="secondary-button" id="addConfigurationField" type="button" data-i18n="addField">Add field</button></header>
+              <div id="configurationFields"></div>
+            </section>
+            <p class="form-error" id="configurationError" role="alert"></p>
+          </div>
+          <aside class="configuration-preview">
+            <p class="eyebrow" data-i18n="preview">Preview</p>
+            <article class="service-card" id="configurationPreview"></article>
+            <div class="config-preview-route" id="configurationRoutePreview"></div>
+            <p class="spark-note"><span data-i18n="publishedImmutable">After publishing, changes require a new version.</span></p>
+          </aside>
+        </div>
+        <footer class="modal-actions">
+          <button class="secondary-button" id="cancelConfigurationForm" type="button" data-i18n="cancel">Cancel</button>
+          <button class="primary-button" id="saveConfigurationDraft" type="submit" data-i18n="saveDraft">Save draft</button>
+        </footer>
+      </form>
+    </article>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"><span id="toastMessage"></span></div>
+  <script type="module" src="workflow.js?v=20260726.3"></script>
+</body>
+</html>
