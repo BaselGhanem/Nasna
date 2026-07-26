@@ -21,10 +21,10 @@ import {
   deleteApp,
   initializeApp
 } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-app.js";
-import { auth, firebaseConfig } from "./firebase-config.js?v=20260726.3";
-import { db } from "./firestore-config.js?v=20260726.3";
+import { auth, firebaseConfig } from "./firebase-config.js?v=20260726.4";
+import { db } from "./firestore-config.js?v=20260726.4";
 
-const release = `20260726.3`;
+const release = `20260726.4`;
 const pageType = document.body.dataset.page || `records`;
 const adminRoles = new Set([`super_admin`, `hr_admin`]);
 const activeEmploymentStatuses = new Set([`active`, `probation`, `leave`]);
@@ -223,6 +223,8 @@ const translations = {
     importLibraryMissing: `The Excel reader did not load. Refresh once while connected to the internet.`,
     invalidWorkbook: `Use the official NASNA workbook and keep the Employees sheet name unchanged.`,
     emptyWorkbook: `The Employees sheet does not contain data rows.`,
+    importFileTooLarge: `The workbook exceeds the 5 MB upload limit.`,
+    importTooManyRows: `Import no more than 1,000 employees in one workbook.`,
     importHasErrors: `Correct every highlighted row before importing.`,
     importSuccessSummary: `{count} employee files and login accounts were created. Download the one-time credentials now; passwords are not stored in Firestore.`,
     importPartialSummary: `{success} employees were created and {failed} rows failed. Download successful credentials and correct only the failed rows.`,
@@ -441,6 +443,8 @@ const translations = {
     importLibraryMissing: `لم يتم تحميل قارئ Excel. حدّث الصفحة مرة واحدة أثناء الاتصال بالإنترنت.`,
     invalidWorkbook: `استخدم ملف ناسنا الرسمي وأبقِ اسم الورقة Employees دون تغيير.`,
     emptyWorkbook: `لا تحتوي ورقة Employees على صفوف بيانات.`,
+    importFileTooLarge: `يتجاوز ملف Excel الحد الأقصى المسموح وهو 5 ميجابايت.`,
+    importTooManyRows: `استورد بحد أقصى 1,000 موظف في الملف الواحد.`,
     importHasErrors: `صحح جميع الصفوف المحددة قبل الاستيراد.`,
     importSuccessSummary: `تم إنشاء {count} ملف موظف وحساب دخول. نزّل بيانات الدخول الآن لأنها لا تُخزن في Firestore.`,
     importPartialSummary: `تم إنشاء {success} موظف وفشل {failed} صف. نزّل بيانات الناجحين وصحح الصفوف الفاشلة فقط.`,
@@ -1618,10 +1622,10 @@ const parseExcelDate = value => {
   if (value instanceof Date && !Number.isNaN(value.getTime())) {
     return value.toISOString().slice(0, 10);
   }
-  if (typeof value === `number` && window.XLSX?.SSF?.parse_date_code) {
-    const parsed = window.XLSX.SSF.parse_date_code(value);
-    if (!parsed) return ``;
-    return `${String(parsed.y).padStart(4, `0`)}-${String(parsed.m).padStart(2, `0`)}-${String(parsed.d).padStart(2, `0`)}`;
+  if (typeof value === `number` && Number.isFinite(value)) {
+    const parsed = new Date(Date.UTC(1899, 11, 30) + Math.round(value) * 86400000);
+    if (Number.isNaN(parsed.getTime())) return ``;
+    return parsed.toISOString().slice(0, 10);
   }
   const text = safeTrim(value);
   if (/^\d{4}-\d{2}-\d{2}$/.test(text)) return text;
@@ -1643,6 +1647,19 @@ const hasExcelValue = value => (
   || (typeof value === `number` && Number.isFinite(value))
   || safeTrim(value) !== ``
 );
+
+const excelCellValue = cell => {
+  const value = cell?.value ?? cell;
+  if (value instanceof Date || typeof value !== `object` || value === null) {
+    return value ?? ``;
+  }
+  if (`result` in value) return value.result ?? ``;
+  if (`text` in value) return value.text ?? ``;
+  if (Array.isArray(value.richText)) {
+    return value.richText.map(part => part.text || ``).join(``);
+  }
+  return ``;
+};
 
 const normalizeImportRow = (row, rowNumber) => {
   const employeeCode = normalizeCode(rowValue(row, headerNames.employeeCode));
@@ -1914,35 +1931,47 @@ const handleImportFile = async event => {
   if (!file) return;
   setError(elements.importError);
 
-  if (!window.XLSX) {
+  if (!window.ExcelJS) {
     setError(elements.importError, translate(`importLibraryMissing`));
     return;
   }
 
   try {
-    const workbook = window.XLSX.read(await file.arrayBuffer(), {
-      type: `array`,
-      cellDates: true
-    });
-    const worksheet = workbook.Sheets.Employees;
+    if (file.size > 5 * 1024 * 1024) {
+      throw Object.assign(new Error(`Workbook too large.`), {
+        code: `file-too-large`
+      });
+    }
+    const workbook = new window.ExcelJS.Workbook();
+    await workbook.xlsx.load(await file.arrayBuffer());
+    const worksheet = workbook.getWorksheet(`Employees`);
     if (!worksheet) throw Object.assign(new Error(`Missing Employees sheet.`), { code: `invalid-workbook` });
+    if (worksheet.actualRowCount > 1001) {
+      throw Object.assign(new Error(`Too many employee rows.`), {
+        code: `too-many-rows`
+      });
+    }
 
-    const headerRows = window.XLSX.utils.sheet_to_json(worksheet, {
-      header: 1,
-      blankrows: false,
-      defval: ``
+    const headers = [];
+    worksheet.getRow(1).eachCell({ includeEmpty: true }, (cell, columnNumber) => {
+      headers[columnNumber - 1] = safeTrim(excelCellValue(cell));
     });
-    const headers = (headerRows[0] || []).map(safeTrim);
     const missingHeaders = requiredHeaders.filter(header => !headers.includes(header));
     if (missingHeaders.length) {
       const message = missingHeaders.map(field => translate(`missingHeader`, { field })).join(` `);
       throw Object.assign(new Error(message), { code: `missing-headers` });
     }
 
-    const rawRows = window.XLSX.utils.sheet_to_json(worksheet, {
-      defval: ``,
-      raw: true,
-      blankrows: false
+    const rawRows = [];
+    worksheet.eachRow({ includeEmpty: false }, (row, rowNumber) => {
+      if (rowNumber === 1) return;
+      const record = Object.fromEntries(headers.map((header, index) => [
+        header,
+        excelCellValue(row.getCell(index + 1))
+      ]));
+      if (headers.some(header => hasExcelValue(record[header]))) {
+        rawRows.push(record);
+      }
     });
     if (!rawRows.length) throw Object.assign(new Error(`Empty Employees sheet.`), { code: `empty-workbook` });
 
@@ -1955,6 +1984,10 @@ const handleImportFile = async event => {
     console.error(`NASNA import parsing error.`, error);
     const message = error.code === `missing-headers`
       ? error.message
+      : error.code === `file-too-large`
+        ? translate(`importFileTooLarge`)
+        : error.code === `too-many-rows`
+          ? translate(`importTooManyRows`)
       : error.code === `empty-workbook`
         ? translate(`emptyWorkbook`)
         : translate(`invalidWorkbook`);
