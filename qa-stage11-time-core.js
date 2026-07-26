@@ -271,6 +271,7 @@ export const state = {
     activePolicyId: `POLICY-V1`,
     policyVersion: 1,
     holidayCalendarYear: new Date().getFullYear(),
+    holidayCalendarConfirmedAt: new Date(),
     requestServicesEnabled: true,
     requestTypeIds: [`shift_change__v1`, `shift_swap__v1`]
   },
@@ -496,6 +497,7 @@ export const saveShiftTemplate = async () => templates[0];
 export const saveHoliday = async () => state.holidays[0];
 export const confirmHolidayCalendar = async year => {
   state.settings.holidayCalendarYear = year;
+  state.settings.holidayCalendarConfirmedAt = new Date();
   return state.settings;
 };
 export const activateShiftRequestServices = async () => {

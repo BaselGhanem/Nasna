@@ -978,6 +978,15 @@ const publishResumableRoster = async database => {
   await assertFails(setDoc(path(employeeDb, `shiftTemplates`, `UNSAFE`), {
     id: `UNSAFE`
   }));
+  await assertFails(setDoc(
+    path(hrDb, `timeSettings`, `current`),
+    {
+      holidayCalendarConfirmedAt: null,
+      updatedAt: serverTimestamp(),
+      updatedBy: `hr`
+    },
+    { merge: true }
+  ));
   await assertSucceeds(
     createShiftChangeRequest(employeeDb, `SHIFT-EMP-1`, `000001`)
   );

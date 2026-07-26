@@ -986,9 +986,20 @@ const renderRosterList = () => {
 };
 
 const renderReadiness = () => {
-  const year = new Date().getFullYear();
+  let year = new Date().getFullYear();
+  try {
+    year = Number(new Intl.DateTimeFormat(`en`, {
+      timeZone: state.policy?.timezone || `Asia/Amman`,
+      year: `numeric`
+    }).format(new Date()));
+  } catch {
+    // Use the browser-local year only for an invalid legacy timezone.
+  }
   const policyReady = Boolean(state.settings?.activePolicyId && state.policy);
-  const holidayReady = state.settings?.holidayCalendarYear === year;
+  const holidayReady = (
+    state.settings?.holidayCalendarYear === year
+    && Boolean(toDate(state.settings?.holidayCalendarConfirmedAt))
+  );
   const templateReady = state.templates.some(template => template.status === `active`);
   const checks = [
     [elements.policyReady, policyReady],

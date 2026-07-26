@@ -2548,8 +2548,14 @@ service cloud.firestore {
         && request.resource.data.holidayCalendarYear >= 0
         && request.resource.data.holidayCalendarYear <= 2100
         && (
-          request.resource.data.holidayCalendarConfirmedAt == null
-          || request.resource.data.holidayCalendarConfirmedAt is timestamp
+          (
+            request.resource.data.holidayCalendarYear == 0
+            && request.resource.data.holidayCalendarConfirmedAt == null
+          )
+          || (
+            request.resource.data.holidayCalendarYear >= 2020
+            && request.resource.data.holidayCalendarConfirmedAt is timestamp
+          )
         )
         && request.resource.data.requestServicesEnabled is bool
         && request.resource.data.requestTypeIds is list
@@ -2561,6 +2567,8 @@ service cloud.firestore {
           )
           || (
             request.resource.data.requestServicesEnabled == true
+            && request.resource.data.holidayCalendarYear >= 2020
+            && request.resource.data.holidayCalendarConfirmedAt is timestamp
             && request.resource.data.requestTypeIds.size() == 2
             && request.resource.data.requestTypeIds[0]
               != request.resource.data.requestTypeIds[1]

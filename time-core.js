@@ -1584,9 +1584,17 @@ const stage11RequestDefinition = (code, version) => {
 
 const activateShiftRequestServices = async () => {
   if (!isAdmin()) throw new Error(`permission-denied`);
-  const currentYear = new Date().getFullYear();
   if (!state.settings?.activePolicyId) throw new Error(`policy-required`);
-  if (state.settings.holidayCalendarYear !== currentYear) {
+  const currentYear = Number(
+    timezoneParts(
+      new Date(),
+      state.policy?.timezone || `Asia/Amman`
+    )?.year || new Date().getFullYear()
+  );
+  if (
+    state.settings.holidayCalendarYear !== currentYear
+    || !toDate(state.settings.holidayCalendarConfirmedAt)
+  ) {
     throw new Error(`holiday-calendar-required`);
   }
   if (!state.templates.some(template => template.status === `active`)) {
