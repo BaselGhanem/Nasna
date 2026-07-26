@@ -1,0 +1,257 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#099999">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="NASNA">
+  <title>Employment Lifecycle | NASNA</title>
+  <link rel="icon" href="assets/brand/nasna-mark.svg" type="image/svg+xml">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Almarai:wght@400;700;800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="records.css?v=20260726.1">
+</head>
+<body class="is-checking-auth" data-page="lifecycle">
+  <div class="auth-loader" id="authLoader" role="status" aria-live="polite">
+    <img src="assets/brand/nasna-mark.svg" width="56" height="56" alt="">
+    <span data-i18n="checkingAccess">Checking your access…</span>
+  </div>
+
+  <div class="records-app" id="recordsApp" hidden>
+    <header class="topbar">
+      <a class="brand-link" href="dashboard.html?v=20260726.1" aria-label="NASNA dashboard">
+        <img src="assets/brand/nasna-mark.svg" width="42" height="42" alt="">
+        <span data-i18n="brandName">NASNA</span>
+      </a>
+
+      <nav class="topbar-actions" aria-label="Workspace navigation">
+        <a class="topbar-link" href="dashboard.html?v=20260726.1">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11 12 4l8 7v9h-6v-6h-4v6H4z"/></svg>
+          <span data-i18n="dashboard">Dashboard</span>
+        </a>
+        <a class="topbar-link" id="myProfileNav" href="employee.html?v=20260726.1" hidden>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.5"/><path d="M5 20v-2a7 7 0 0 1 14 0v2"/></svg>
+          <span data-i18n="myProfile">My profile</span>
+        </a>
+        <a class="topbar-link" id="peopleAdminNav" href="people.html?v=20260726.1" hidden>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="8" cy="8" r="3"/><path d="M2.5 20v-2a5.5 5.5 0 0 1 11 0v2M16 8h5m-2.5-2.5v5"/></svg>
+          <span data-i18n="employeeRecords">Employees</span>
+        </a>
+        <a class="topbar-link" href="documents.html?v=20260726.1">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h8l4 4v14H6zM14 3v5h5M9 13h6m-6 4h6"/></svg>
+          <span data-i18n="documents">Documents</span>
+        </a>
+        <a class="topbar-link is-current" href="lifecycle.html?v=20260726.1">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 6h14M5 12h14M5 18h14"/><circle cx="8" cy="6" r="1.5"/><circle cx="15" cy="12" r="1.5"/><circle cx="11" cy="18" r="1.5"/></svg>
+          <span data-i18n="employmentHistory">History</span>
+        </a>
+        <button class="language-button" id="languageButton" type="button">
+          <span id="languageLabel">العربية</span>
+        </button>
+        <button class="signout-button" id="signOutButton" type="button">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 5H5v14h5M14 8l4 4-4 4m4-4H9"/></svg>
+          <span data-i18n="signOut">Sign out</span>
+        </button>
+      </nav>
+    </header>
+
+    <main class="page-shell">
+      <section class="page-heading">
+        <div>
+          <p class="eyebrow" data-i18n="stage09">Stage 09 · NASNA Core</p>
+          <h1 data-i18n="lifecycleTitle">Employment lifecycle & movement history</h1>
+          <p data-i18n="lifecycleCopy">Every transfer, promotion, reporting change, and employment-status change is recorded as an immutable HR action.</p>
+        </div>
+        <div class="signed-in-card">
+          <span class="avatar" id="signedInAvatar">U</span>
+          <span>
+            <small data-i18n="signedInAs">Signed in as</small>
+            <strong id="signedInEmail"></strong>
+          </span>
+        </div>
+      </section>
+
+      <section class="stage-banner">
+        <div>
+          <p class="eyebrow" data-i18n="controlledActions">Controlled HR actions</p>
+          <h2 id="lifecycleBannerTitle" data-i18n="lifecycleBannerAdmin">Apply employee changes with history</h2>
+          <p id="lifecycleBannerCopy" data-i18n="lifecycleBannerAdminCopy">HR applies a current-dated movement once. NASNA updates the employee record and writes the before-and-after history in the same Firestore batch.</p>
+        </div>
+        <aside class="spark-boundary">
+          <strong data-i18n="immutableHistory">Immutable movement history</strong>
+          <small data-i18n="immutableHistoryCopy">Movement records cannot be edited or deleted. Managers have no write access; they remain employees with their own private history.</small>
+        </aside>
+      </section>
+
+      <section class="stats-grid" aria-label="Lifecycle statistics">
+        <article class="stat-card">
+          <span data-i18n="totalMovements">Total movements</span>
+          <strong id="totalMovements">0</strong>
+          <small data-i18n="recordedActions">Recorded HR actions</small>
+        </article>
+        <article class="stat-card">
+          <span data-i18n="transfersAndPromotions">Transfers & promotions</span>
+          <strong id="careerMovements">0</strong>
+          <small data-i18n="positionChanges">Position changes</small>
+        </article>
+        <article class="stat-card">
+          <span data-i18n="managerChanges">Manager changes</span>
+          <strong id="managerMovements">0</strong>
+          <small data-i18n="reportingChanges">Reporting-line changes</small>
+        </article>
+        <article class="stat-card">
+          <span data-i18n="statusChanges">Status changes</span>
+          <strong id="statusMovements">0</strong>
+          <small data-i18n="employmentChanges">Employment-state changes</small>
+        </article>
+      </section>
+
+      <section class="workspace-card">
+        <header class="workspace-header">
+          <div>
+            <p class="eyebrow" data-i18n="movementTimeline">Movement timeline</p>
+            <h2 id="movementDirectoryTitle" data-i18n="allEmployeeMovements">All employee movements</h2>
+          </div>
+          <div class="workspace-actions">
+            <button class="primary-button" id="openMovementButton" type="button" hidden>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+              <span data-i18n="newMovement">New movement</span>
+            </button>
+          </div>
+        </header>
+
+        <div class="filter-bar">
+          <label class="search-field">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m16 16 4 4"/></svg>
+            <input id="movementSearch" type="search" autocomplete="off" data-i18n-placeholder="searchMovements" placeholder="Search movements">
+          </label>
+          <select id="movementEmployeeFilter" aria-label="Filter by employee" hidden>
+            <option value="" data-i18n="allEmployees">All employees</option>
+          </select>
+          <select id="movementTypeFilter" aria-label="Filter by movement type">
+            <option value="" data-i18n="allMovementTypes">All movement types</option>
+            <option value="transfer" data-i18n="transfer">Transfer</option>
+            <option value="promotion" data-i18n="promotion">Promotion</option>
+            <option value="reassignment" data-i18n="reassignment">Reassignment</option>
+            <option value="manager_change" data-i18n="managerChange">Manager change</option>
+            <option value="employment_change" data-i18n="employmentChange">Employment change</option>
+            <option value="status_change" data-i18n="statusChange">Status change</option>
+            <option value="work_mode_change" data-i18n="workModeChange">Work mode change</option>
+          </select>
+        </div>
+
+        <div class="movement-list" id="movementsList"></div>
+        <div class="empty-state" id="movementsEmpty" hidden>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 6h14M5 12h14M5 18h14"/><circle cx="8" cy="6" r="1.5"/><circle cx="15" cy="12" r="1.5"/><circle cx="11" cy="18" r="1.5"/></svg>
+          <h3 data-i18n="noMovements">No employment movements found</h3>
+          <p data-i18n="noMovementsCopy">The timeline starts when HR applies the first employee movement.</p>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div class="modal-backdrop" id="movementModal" hidden>
+    <section class="modal modal--wide" role="dialog" aria-modal="true" aria-labelledby="movementModalTitle">
+      <header class="modal-header">
+        <div>
+          <p class="eyebrow" data-i18n="hrAction">HR action</p>
+          <h2 id="movementModalTitle" data-i18n="newMovement">New movement</h2>
+        </div>
+        <button class="icon-button" id="closeMovementModal" type="button" aria-label="Close">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>
+        </button>
+      </header>
+
+      <form id="movementForm" novalidate>
+        <div class="form-grid">
+          <label>
+            <span data-i18n="employee">Employee</span>
+            <select id="movementEmployeeId" required></select>
+          </label>
+          <label>
+            <span data-i18n="movementType">Movement type</span>
+            <select id="movementType" required>
+              <option value="transfer" data-i18n="transfer">Transfer</option>
+              <option value="promotion" data-i18n="promotion">Promotion</option>
+              <option value="reassignment" data-i18n="reassignment">Reassignment</option>
+              <option value="manager_change" data-i18n="managerChange">Manager change</option>
+              <option value="employment_change" data-i18n="employmentChange">Employment change</option>
+              <option value="status_change" data-i18n="statusChange">Status change</option>
+              <option value="work_mode_change" data-i18n="workModeChange">Work mode change</option>
+            </select>
+          </label>
+          <label>
+            <span data-i18n="effectiveDate">Effective date</span>
+            <input id="movementEffectiveDate" type="date" required>
+            <small data-i18n="effectiveDateHelp">Today or an earlier date. Future automation requires a server scheduler and is not used on Spark.</small>
+          </label>
+        </div>
+
+        <div class="current-summary" id="movementCurrentSummary" hidden></div>
+
+        <div class="form-grid form-grid--three">
+          <label>
+            <span data-i18n="newPosition">New position</span>
+            <select id="movementPositionId" required></select>
+          </label>
+          <label>
+            <span data-i18n="newManager">New direct manager</span>
+            <select id="movementManagerEmployeeId"></select>
+          </label>
+          <label>
+            <span data-i18n="newEmploymentType">Employment type</span>
+            <select id="movementEmploymentType" required>
+              <option value="permanent" data-i18n="permanent">Permanent</option>
+              <option value="fixed_term" data-i18n="fixedTerm">Fixed term</option>
+              <option value="part_time" data-i18n="partTime">Part time</option>
+              <option value="intern" data-i18n="intern">Intern</option>
+              <option value="consultant" data-i18n="consultant">Consultant</option>
+            </select>
+          </label>
+          <label>
+            <span data-i18n="newEmploymentStatus">Employment status</span>
+            <select id="movementEmploymentStatus" required>
+              <option value="active" data-i18n="active">Active</option>
+              <option value="probation" data-i18n="probation">Probation</option>
+              <option value="leave" data-i18n="leave">On leave</option>
+              <option value="suspended" data-i18n="suspended">Suspended</option>
+            </select>
+          </label>
+          <label>
+            <span data-i18n="newWorkMode">Work mode</span>
+            <select id="movementWorkMode" required>
+              <option value="onsite" data-i18n="onsite">On-site</option>
+              <option value="hybrid" data-i18n="hybrid">Hybrid</option>
+              <option value="remote" data-i18n="remote">Remote</option>
+            </select>
+          </label>
+          <label class="form-span-two">
+            <span data-i18n="movementReason">Reason / employee-visible note</span>
+            <textarea id="movementReason" rows="3" maxlength="500" required></textarea>
+            <small data-i18n="movementReasonHelp">This note is visible to the employee. Do not enter confidential investigation details.</small>
+          </label>
+        </div>
+
+        <div class="form-error" id="movementFormError" role="alert" hidden></div>
+        <footer class="modal-footer">
+          <button class="secondary-button" id="cancelMovementButton" type="button" data-i18n="cancel">Cancel</button>
+          <button class="primary-button" id="applyMovementButton" type="submit">
+            <span data-i18n="applyMovement">Apply movement</span>
+          </button>
+        </footer>
+      </form>
+    </section>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite">
+    <span id="toastMessage"></span>
+  </div>
+
+  <script type="module" src="records.js?v=20260726.1"></script>
+</body>
+</html>

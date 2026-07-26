@@ -28,13 +28,11 @@ NASNA will be delivered progressively as independent but connected modules:
 
 ## Current Stage
 
-**Stage 07 — Employee Records, Self-Service & Manager Workspace**
+**Stages 08 & 09 — Documents, Contracts & Employment Lifecycle**
 
-Stage 07 adds the trusted employee file, one-login-per-employee provisioning, job and manager assignment, a private employee self-service profile, and a separate view-only workspace for managers and their direct reports. A manager always remains an employee; manager capability is enabled automatically by reporting relationships. Only HR Admin and Super Admin can create or change employee records.
+Stage 08 adds a tenant-isolated employee document register for contracts, identity records, permits, certificates, secure HTTPS references, visibility controls, and expiry monitoring. HR Admin and Super Admin manage the register; employees can read only records explicitly shared with their own login. Firebase Storage is not used because Cloud Storage requires the Blaze plan. The Spark-compatible release stores document metadata and controlled references in Firestore.
 
-Existing-company onboarding is supported by the official
-[`NASNA_Employee_Import_Template.xlsx`](assets/templates/NASNA_Employee_Import_Template.xlsx).
-NASNA validates required columns, structure codes, approved position capacity, duplicate records, manager existence, and circular reporting lines before import.
+Stage 09 adds immutable employment movements for transfers, promotions, reassignments, manager changes, employment-type changes, status changes, and work-mode changes. HR applies the current-dated movement and NASNA updates the employee record, account access, manager capability, audit log, and before/after movement history in one Firestore batch. Managers remain employees and cannot create HR movements.
 
 **Live application:** https://baselghanem.github.io/Nasna/
 
@@ -70,6 +68,8 @@ nasna_companies/{companyId}/jobTitles/{jobTitleCode}
 nasna_companies/{companyId}/positions/{positionCode}
 nasna_companies/{companyId}/employees/{employeeCode}
 nasna_companies/{companyId}/employeePrivate/{employeeCode}
+nasna_companies/{companyId}/employeeDocuments/{documentId}
+nasna_companies/{companyId}/employeeMovements/{movementId}
 nasna_companies/{companyId}/auditLogs/{logId}
 ```
 
@@ -77,13 +77,15 @@ Structure, job, and employee codes are immutable uppercase identifiers containin
 
 Position records connect a job title to a branch and department, with an optional team and work location plus approved headcount. Employee records link to positions and to a direct manager by immutable employee code. Private identity, personal contact, emergency, and HR-only details are stored separately from the company-readable employee directory.
 
+Document records store metadata and optional company-controlled HTTPS references; binary employee files are never committed to GitHub or embedded in Firestore. Employment movements are append-only and link the before-and-after assignment to the employee record through `lastMovementId`.
+
 ## Access model
 
 - `super_admin`
 - `hr_admin`
 - `employee`
 
-`isManager` is an additive membership capability synchronized from active direct-report relationships. It never replaces the employee role or employee profile. Legacy `manager` memberships remain readable for backward compatibility but are not provisioned by the Stage 07 interface.
+`isManager` is an additive membership capability synchronized from active direct-report relationships. It never replaces the employee role or employee profile. Managers can read their own documents and employment history, but cannot create or change HR records.
 
 ## Technology Direction
 
