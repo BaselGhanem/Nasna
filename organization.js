@@ -23,8 +23,8 @@ import {
 import {
   auth,
   firebaseConfig
-} from "./firebase-config.js?v=20260726.3";
-import { db } from "./firestore-config.js?v=20260726.3";
+} from "./firebase-config.js?v=20260726.4";
+import { db } from "./firestore-config.js?v=20260726.4";
 
 const translations = {
   en: {
@@ -209,7 +209,7 @@ const translations = {
   }
 };
 
-const version = `20260726.3`;
+const version = `20260726.4`;
 const languageKey = `nasna-language`;
 const roleValues = [`super_admin`, `hr_admin`, `employee`];
 const provisionableRoles = new Set([`super_admin`, `hr_admin`]);
