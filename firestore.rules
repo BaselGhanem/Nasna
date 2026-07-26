@@ -50,6 +50,26 @@ service cloud.firestore {
       return /databases/$(database)/documents/nasna_companies/$(companyId)/employeeMovements/$(movementId);
     }
 
+    function requestTypePath(companyId, requestTypeId) {
+      return /databases/$(database)/documents/nasna_companies/$(companyId)/requestTypes/$(requestTypeId);
+    }
+
+    function workflowPath(companyId, workflowId) {
+      return /databases/$(database)/documents/nasna_companies/$(companyId)/workflowDefinitions/$(workflowId);
+    }
+
+    function workflowRequestPath(companyId, requestId) {
+      return /databases/$(database)/documents/nasna_companies/$(companyId)/requests/$(requestId);
+    }
+
+    function delegationPath(companyId, delegationId) {
+      return /databases/$(database)/documents/nasna_companies/$(companyId)/delegations/$(delegationId);
+    }
+
+    function workflowRequestEventPath(companyId, requestId, eventId) {
+      return /databases/$(database)/documents/nasna_companies/$(companyId)/requests/$(requestId)/events/$(eventId);
+    }
+
     function userPath(uid) {
       return /databases/$(database)/documents/nasna_users/$(uid);
     }
@@ -64,7 +84,6 @@ service cloud.firestore {
 
     function activeMember(companyId) {
       return signedIn()
-        && exists(memberPath(companyId, request.auth.uid))
         && member(companyId).data.status == 'active';
     }
 
@@ -74,7 +93,8 @@ service cloud.firestore {
     }
 
     function roleIn(companyId, roles) {
-      return activeMember(companyId)
+      return signedIn()
+        && member(companyId).data.status == 'active'
         && member(companyId).data.role in roles;
     }
 
@@ -84,6 +104,566 @@ service cloud.firestore {
 
     function superAdmin(companyId) {
       return roleIn(companyId, ['super_admin']);
+    }
+
+    function managerActor(companyId) {
+      return signedIn()
+        && member(companyId).data.status == 'active'
+        && (
+          member(companyId).data.role == 'manager'
+          || member(companyId).data.isManager == true
+        );
+    }
+
+    function requestTerminal(status) {
+      return status in [
+        'COMPLETED',
+        'REJECTED',
+        'WITHDRAWN',
+        'CANCELLED'
+      ];
+    }
+
+    function requestOwner(data) {
+      return signedIn() && data.requesterUid == request.auth.uid;
+    }
+
+    function requestAssigned(data) {
+      return signedIn()
+        && data.currentAssigneeIds is list
+        && data.currentAssigneeIds.hasAny([request.auth.uid]);
+    }
+
+    function requestLineManager(companyId, data) {
+      return activeMember(companyId)
+        && data.confidentiality == 'normal'
+        && member(companyId).data.employeeId is string
+        && member(companyId).data.employeeId == data.managerEmployeeId;
+    }
+
+    function canReadWorkflowRequest(companyId, data) {
+      return activeMember(companyId)
+        && (
+          member(companyId).data.role in ['super_admin', 'hr_admin']
+          || requestOwner(data)
+          || requestAssigned(data)
+          || (
+            data.confidentiality == 'normal'
+            && member(companyId).data.employeeId is string
+            && member(companyId).data.employeeId == data.managerEmployeeId
+          )
+        );
+    }
+
+    function validRequestTypeShape(companyId, requestTypeId) {
+      return request.resource.data.keys().hasAll([
+          'id',
+          'companyId',
+          'code',
+          'version',
+          'nameEn',
+          'nameAr',
+          'descriptionEn',
+          'descriptionAr',
+          'category',
+          'confidentiality',
+          'subjectMode',
+          'initialResolver',
+          'formSchema',
+          'workflowId',
+          'status',
+          'createdAt',
+          'createdBy'
+        ])
+        && request.resource.data.keys().hasOnly([
+          'id',
+          'companyId',
+          'code',
+          'version',
+          'nameEn',
+          'nameAr',
+          'descriptionEn',
+          'descriptionAr',
+          'category',
+          'confidentiality',
+          'subjectMode',
+          'initialResolver',
+          'formSchema',
+          'workflowId',
+          'status',
+          'createdAt',
+          'createdBy',
+          'retiredAt',
+          'retiredBy'
+        ])
+        && request.resource.data.id == requestTypeId
+        && request.resource.data.companyId == companyId
+        && request.resource.data.code is string
+        && request.resource.data.code.matches('^[a-z][a-z0-9_]{2,39}$')
+        && request.resource.data.version is int
+        && request.resource.data.version >= 1
+        && request.resource.data.nameEn is string
+        && request.resource.data.nameEn.size() > 0
+        && request.resource.data.nameEn.size() <= 120
+        && request.resource.data.nameAr is string
+        && request.resource.data.nameAr.size() > 0
+        && request.resource.data.nameAr.size() <= 120
+        && request.resource.data.descriptionEn is string
+        && request.resource.data.descriptionEn.size() <= 500
+        && request.resource.data.descriptionAr is string
+        && request.resource.data.descriptionAr.size() <= 500
+        && request.resource.data.category in [
+          'general',
+          'personal_data',
+          'documents',
+          'confidential',
+          'team',
+          'correction',
+          'custom'
+        ]
+        && request.resource.data.confidentiality in ['normal', 'restricted']
+        && request.resource.data.subjectMode in ['self', 'direct_report']
+        && request.resource.data.initialResolver in ['direct_manager', 'hr']
+        && request.resource.data.formSchema is list
+        && request.resource.data.formSchema.size() > 0
+        && request.resource.data.formSchema.size() <= 30
+        && request.resource.data.workflowId is string
+        && request.resource.data.workflowId.size() > 0
+        && request.resource.data.workflowId.size() <= 100
+        && request.resource.data.status in ['published', 'retired']
+        && request.resource.data.createdAt is timestamp
+        && request.resource.data.createdBy is string;
+    }
+
+    function validWorkflowShape(companyId, workflowId) {
+      return request.resource.data.keys().hasAll([
+          'id',
+          'companyId',
+          'requestTypeCode',
+          'version',
+          'steps',
+          'slaHours',
+          'status',
+          'createdAt',
+          'createdBy'
+        ])
+        && request.resource.data.keys().hasOnly([
+          'id',
+          'companyId',
+          'requestTypeCode',
+          'version',
+          'steps',
+          'slaHours',
+          'status',
+          'createdAt',
+          'createdBy'
+        ])
+        && request.resource.data.id == workflowId
+        && request.resource.data.companyId == companyId
+        && request.resource.data.requestTypeCode is string
+        && request.resource.data.requestTypeCode.matches('^[a-z][a-z0-9_]{2,39}$')
+        && request.resource.data.version is int
+        && request.resource.data.version >= 1
+        && request.resource.data.steps is list
+        && request.resource.data.steps.size() > 0
+        && request.resource.data.steps.size() <= 20
+        && request.resource.data.slaHours is int
+        && request.resource.data.slaHours >= 1
+        && request.resource.data.slaHours <= 8760
+        && (
+          request.resource.data.initialResolver != 'direct_manager'
+          || request.resource.data.slaHours >= 2
+        )
+        && request.resource.data.status == 'published'
+        && request.resource.data.createdAt is timestamp
+        && request.resource.data.createdBy is string;
+    }
+
+    function validWorkflowDraftShape(companyId, draftId) {
+      return request.resource.data.keys().hasAll([
+          'id',
+          'companyId',
+          'code',
+          'nameEn',
+          'nameAr',
+          'descriptionEn',
+          'descriptionAr',
+          'category',
+          'confidentiality',
+          'subjectMode',
+          'initialResolver',
+          'slaHours',
+          'formSchema',
+          'createdAt',
+          'createdBy',
+          'updatedAt',
+          'updatedBy'
+        ])
+        && request.resource.data.keys().hasOnly([
+          'id',
+          'companyId',
+          'code',
+          'nameEn',
+          'nameAr',
+          'descriptionEn',
+          'descriptionAr',
+          'category',
+          'confidentiality',
+          'subjectMode',
+          'initialResolver',
+          'slaHours',
+          'formSchema',
+          'createdAt',
+          'createdBy',
+          'updatedAt',
+          'updatedBy'
+        ])
+        && request.resource.data.id == draftId
+        && request.resource.data.companyId == companyId
+        && request.resource.data.code is string
+        && request.resource.data.code.matches('^[a-z][a-z0-9_]{2,39}$')
+        && request.resource.data.nameEn is string
+        && request.resource.data.nameEn.size() > 0
+        && request.resource.data.nameEn.size() <= 120
+        && request.resource.data.nameAr is string
+        && request.resource.data.nameAr.size() > 0
+        && request.resource.data.nameAr.size() <= 120
+        && request.resource.data.descriptionEn is string
+        && request.resource.data.descriptionEn.size() <= 500
+        && request.resource.data.descriptionAr is string
+        && request.resource.data.descriptionAr.size() <= 500
+        && request.resource.data.category in [
+          'general',
+          'personal_data',
+          'documents',
+          'confidential',
+          'team',
+          'correction',
+          'custom'
+        ]
+        && request.resource.data.confidentiality in ['normal', 'restricted']
+        && request.resource.data.subjectMode in ['self', 'direct_report']
+        && request.resource.data.initialResolver in ['direct_manager', 'hr']
+        && (
+          request.resource.data.confidentiality == 'normal'
+          || request.resource.data.initialResolver == 'hr'
+        )
+        && request.resource.data.slaHours is int
+        && request.resource.data.slaHours >= 1
+        && request.resource.data.slaHours <= 8760
+        && request.resource.data.formSchema is list
+        && request.resource.data.formSchema.size() > 0
+        && request.resource.data.formSchema.size() <= 30
+        && request.resource.data.createdAt is timestamp
+        && request.resource.data.createdBy is string
+        && request.resource.data.updatedAt is timestamp
+        && request.resource.data.updatedBy is string;
+    }
+
+    function validWorkflowRequestShape(companyId, workflowRequestId) {
+      return request.resource.data.keys().hasAll([
+          'id',
+          'companyId',
+          'requestNumber',
+          'typeId',
+          'typeCode',
+          'typeVersion',
+          'workflowId',
+          'requesterUid',
+          'requesterEmployeeId',
+          'requesterName',
+          'subjectEmployeeId',
+          'subjectName',
+          'managerEmployeeId',
+          'status',
+          'currentStep',
+          'currentStepType',
+          'currentAssigneeIds',
+          'routeKind',
+          'payload',
+          'confidentiality',
+          'priority',
+          'createdAt',
+          'createdBy',
+          'updatedAt',
+          'updatedBy',
+          'revision',
+          'previousStatus',
+          'previousAssigneeIds',
+          'delegationId',
+          'originalAssigneeIds',
+          'dueAt',
+          'submittedAt',
+          'lastEventId',
+          'outcome',
+          'fulfillmentRef',
+          'completedAt',
+          'withdrawnAt'
+        ])
+        && request.resource.data.id == workflowRequestId
+        && request.resource.data.companyId == companyId
+        && request.resource.data.requestNumber.matches(
+          '^REQ-([A-Z0-9]{2,8}-)?[0-9]{4}-[A-Z0-9]{5,20}$'
+        )
+        && request.resource.data.typeVersion is int
+        && request.resource.data.typeVersion >= 1
+        && request.resource.data.requesterName.size() > 0
+        && request.resource.data.requesterName.size() <= 140
+        && request.resource.data.subjectName.size() > 0
+        && request.resource.data.subjectName.size() <= 140
+        && request.resource.data.status in [
+          'DRAFT',
+          'SUBMITTED',
+          'PENDING_APPROVAL',
+          'NEEDS_INFORMATION',
+          'PENDING_FULFILLMENT',
+          'APPROVED',
+          'COMPLETED',
+          'REJECTED',
+          'WITHDRAWN',
+          'CANCELLED'
+        ]
+        && request.resource.data.previousStatus is string
+        && request.resource.data.currentStep is int
+        && request.resource.data.currentStep >= 0
+        && request.resource.data.currentStep <= 20
+        && request.resource.data.currentStepType in [
+          '',
+          'approval',
+          'acknowledgement',
+          'fulfillment',
+          'automated_validation'
+        ]
+        && request.resource.data.currentAssigneeIds is list
+        && request.resource.data.currentAssigneeIds.size() <= 20
+        && request.resource.data.previousAssigneeIds.size() <= 20
+        && request.resource.data.delegationId.size() <= 80
+        && request.resource.data.originalAssigneeIds.size() <= 20
+        && request.resource.data.routeKind in ['', 'manager', 'hr']
+        && request.resource.data.payload is map
+        && request.resource.data.confidentiality in ['normal', 'restricted']
+        && request.resource.data.priority in ['normal', 'high', 'urgent']
+        && request.resource.data.createdAt is timestamp
+        && request.resource.data.updatedAt is timestamp
+        && request.resource.data.revision is int
+        && request.resource.data.revision >= 0
+        && (
+          !request.resource.data.keys().hasAny(['slaRemainingHours'])
+          || (
+            request.resource.data.slaRemainingHours is number
+            && request.resource.data.slaRemainingHours >= 0
+            && request.resource.data.slaRemainingHours <= 8760
+          )
+        )
+        && request.resource.data.lastEventId.size() > 0
+        && request.resource.data.lastEventId.size() <= 80
+        && (
+          request.resource.data.completedAt == null
+          || request.resource.data.completedAt is timestamp
+        )
+        && (
+          request.resource.data.withdrawnAt == null
+          || request.resource.data.withdrawnAt is timestamp
+        );
+    }
+
+    function validRequestSubjectData(
+      companyId,
+      requestType,
+      requesterEmployeeId,
+      requesterEmployee
+    ) {
+      return requesterEmployeeId is string
+        && requesterEmployeeId == request.resource.data.requesterEmployeeId
+        && requesterEmployee.authUid == request.auth.uid
+        && (
+          (
+            requestType.subjectMode == 'self'
+            && request.resource.data.subjectEmployeeId == requesterEmployeeId
+          )
+          || (
+            requestType.subjectMode == 'direct_report'
+            && get(
+              employeePath(companyId, request.resource.data.subjectEmployeeId)
+            ).data.managerEmployeeId == requesterEmployeeId
+          )
+        );
+    }
+
+    function validInitialRequestRouteData(
+      companyId,
+      requestType,
+      requesterEmployee
+    ) {
+      let hasManager = requesterEmployee.managerEmployeeId != '';
+      let hasManagerRecord = hasManager
+        && exists(
+          employeePath(companyId, requesterEmployee.managerEmployeeId)
+        );
+      let managerUid = hasManagerRecord
+        ? get(
+            employeePath(companyId, requesterEmployee.managerEmployeeId)
+          ).data.authUid
+        : '';
+      let hasValidManager = hasManagerRecord
+        && managerUid != request.auth.uid
+        && exists(memberPath(companyId, managerUid))
+        && get(memberPath(companyId, managerUid)).data.status == 'active';
+      return (
+          request.resource.data.status == 'DRAFT'
+          && request.resource.data.routeKind == ''
+          && request.resource.data.currentAssigneeIds.size() == 0
+          && request.resource.data.submittedAt == null
+        )
+        || (
+          request.resource.data.status in [
+            'SUBMITTED',
+            'PENDING_APPROVAL',
+            'PENDING_FULFILLMENT'
+          ]
+          && request.resource.data.submittedAt == request.time
+          && request.resource.data.currentAssigneeIds.size() > 0
+          && !request.resource.data.currentAssigneeIds.hasAny([
+            request.auth.uid
+          ])
+          && (
+            (
+              requestType.initialResolver == 'direct_manager'
+              && hasValidManager
+              && request.resource.data.routeKind == 'manager'
+              && request.resource.data.currentAssigneeIds[0] == managerUid
+              && request.resource.data.managerEmployeeId
+                == requesterEmployee.managerEmployeeId
+              && request.resource.data.status == 'PENDING_APPROVAL'
+            )
+            || (
+              (
+                requestType.initialResolver == 'hr'
+                || !hasValidManager
+              )
+              && request.resource.data.routeKind == 'hr'
+              && request.resource.data.currentAssigneeIds.size() > 0
+              && get(
+                memberPath(
+                  companyId,
+                  request.resource.data.currentAssigneeIds[0]
+                )
+              ).data.role in ['super_admin', 'hr_admin']
+              && request.resource.data.status == 'PENDING_FULFILLMENT'
+            )
+          )
+        );
+    }
+
+    function validInitialRequestRoute(companyId) {
+      let requestType = get(
+        requestTypePath(companyId, request.resource.data.typeId)
+      ).data;
+      let requesterEmployee = get(
+        employeePath(companyId, request.resource.data.requesterEmployeeId)
+      ).data;
+      return validInitialRequestRouteData(
+        companyId,
+        requestType,
+        requesterEmployee
+      );
+    }
+
+    function validWorkflowRequestCreate(companyId, workflowRequestId) {
+      let requestType = get(
+        requestTypePath(companyId, request.resource.data.typeId)
+      ).data;
+      let requesterEmployeeId = member(companyId).data.employeeId;
+      let requesterEmployee = get(
+        employeePath(companyId, requesterEmployeeId)
+      ).data;
+      return activeMember(companyId)
+        && validWorkflowRequestShape(companyId, workflowRequestId)
+        && exists(requestTypePath(companyId, request.resource.data.typeId))
+        && requestType.status == 'published'
+        && requestType.code == request.resource.data.typeCode
+        && requestType.version == request.resource.data.typeVersion
+        && requestType.workflowId == request.resource.data.workflowId
+        && requestType.confidentiality
+          == request.resource.data.confidentiality
+        && exists(workflowPath(companyId, request.resource.data.workflowId))
+        && validRequestSubjectData(
+          companyId,
+          requestType,
+          requesterEmployeeId,
+          requesterEmployee
+        )
+        && validInitialRequestRouteData(
+          companyId,
+          requestType,
+          requesterEmployee
+        )
+        && request.resource.data.requesterUid == request.auth.uid
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.updatedAt == request.time
+        && request.resource.data.updatedBy == request.auth.uid
+        && request.resource.data.revision == 0
+        && existsAfter(
+          workflowRequestEventPath(
+            companyId,
+            workflowRequestId,
+            request.resource.data.lastEventId
+          )
+        )
+        && getAfter(
+          workflowRequestEventPath(
+            companyId,
+            workflowRequestId,
+            request.resource.data.lastEventId
+          )
+        ).data.actorUid == request.auth.uid
+        && request.resource.data.previousStatus == ''
+        && request.resource.data.previousAssigneeIds.size() == 0
+        && request.resource.data.delegationId == ''
+        && request.resource.data.originalAssigneeIds.size() == 0
+        && request.resource.data.completedAt == null
+        && request.resource.data.withdrawnAt == null;
+    }
+
+    function validWorkflowRequestUpdate(companyId, workflowRequestId) {
+      return request.resource.data.id == resource.data.id
+        && request.resource.data.companyId == resource.data.companyId
+        && request.resource.data.requestNumber == resource.data.requestNumber
+        && request.resource.data.typeId == resource.data.typeId
+        && request.resource.data.typeCode == resource.data.typeCode
+        && request.resource.data.typeVersion == resource.data.typeVersion
+        && request.resource.data.workflowId == resource.data.workflowId
+        && request.resource.data.requesterUid == resource.data.requesterUid
+        && request.resource.data.requesterEmployeeId
+          == resource.data.requesterEmployeeId
+        && request.resource.data.subjectEmployeeId
+          == resource.data.subjectEmployeeId
+        && request.resource.data.managerEmployeeId
+          == resource.data.managerEmployeeId
+        && request.resource.data.confidentiality
+          == resource.data.confidentiality
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.createdBy == resource.data.createdBy
+        && request.resource.data.updatedAt == request.time
+        && request.resource.data.updatedBy == request.auth.uid
+        && request.resource.data.revision == resource.data.revision + 1
+        && request.resource.data.lastEventId != resource.data.lastEventId
+        && existsAfter(
+          workflowRequestEventPath(
+            companyId,
+            workflowRequestId,
+            request.resource.data.lastEventId
+          )
+        )
+        && getAfter(
+          workflowRequestEventPath(
+            companyId,
+            workflowRequestId,
+            request.resource.data.lastEventId
+          )
+        ).data.actorUid == request.auth.uid
+        && !requestTerminal(resource.data.status);
     }
 
     function validUserShape(uid) {
@@ -483,6 +1063,7 @@ service cloud.firestore {
           'employmentStatus',
           'workMode',
           'lastMovementId',
+          'lastRequestId',
           'createdAt',
           'createdBy',
           'updatedAt',
@@ -542,6 +1123,14 @@ service cloud.firestore {
             request.resource.data.lastMovementId is string
             && request.resource.data.lastMovementId.size() > 0
             && request.resource.data.lastMovementId.size() <= 80
+          )
+        )
+        && (
+          !request.resource.data.keys().hasAny(['lastRequestId'])
+          || (
+            request.resource.data.lastRequestId is string
+            && request.resource.data.lastRequestId.size() > 0
+            && request.resource.data.lastRequestId.size() <= 80
           )
         )
         && (
@@ -607,6 +1196,14 @@ service cloud.firestore {
           )
         )
         && (
+          !request.resource.data.keys().hasAny(['lastRequestId'])
+          || (
+            request.resource.data.lastRequestId is string
+            && request.resource.data.lastRequestId.size() > 0
+            && request.resource.data.lastRequestId.size() <= 80
+          )
+        )
+        && (
           (
             request.resource.data.employmentStatus == 'suspended'
             && request.resource.data.accessStatus == 'disabled'
@@ -650,6 +1247,9 @@ service cloud.firestore {
           'linkUrl',
           'visibility',
           'status',
+          'sourceRequestId',
+          'previousDocumentId',
+          'version',
           'createdAt',
           'createdBy',
           'updatedAt',
@@ -697,6 +1297,29 @@ service cloud.firestore {
         )
         && request.resource.data.visibility in ['employee', 'hr_only']
         && request.resource.data.status in ['active', 'revoked']
+        && (
+          !request.resource.data.keys().hasAny(['sourceRequestId'])
+          || (
+            request.resource.data.sourceRequestId is string
+            && request.resource.data.sourceRequestId.size() > 0
+            && request.resource.data.sourceRequestId.size() <= 80
+          )
+        )
+        && (
+          !request.resource.data.keys().hasAny(['previousDocumentId'])
+          || (
+            request.resource.data.previousDocumentId is string
+            && request.resource.data.previousDocumentId.size() <= 80
+          )
+        )
+        && (
+          !request.resource.data.keys().hasAny(['version'])
+          || (
+            request.resource.data.version is int
+            && request.resource.data.version >= 1
+            && request.resource.data.version <= 1000
+          )
+        )
         && request.resource.data.createdAt is timestamp
         && request.resource.data.createdBy is string
         && request.resource.data.updatedAt is timestamp
@@ -743,6 +1366,7 @@ service cloud.firestore {
           'newEmploymentStatus',
           'previousWorkMode',
           'newWorkMode',
+          'sourceRequestId',
           'createdAt',
           'createdBy'
         ])
@@ -803,6 +1427,14 @@ service cloud.firestore {
         ]
         && request.resource.data.previousWorkMode in ['onsite', 'hybrid', 'remote']
         && request.resource.data.newWorkMode in ['onsite', 'hybrid', 'remote']
+        && (
+          !request.resource.data.keys().hasAny(['sourceRequestId'])
+          || (
+            request.resource.data.sourceRequestId is string
+            && request.resource.data.sourceRequestId.size() > 0
+            && request.resource.data.sourceRequestId.size() <= 80
+          )
+        )
         && (
           request.resource.data.previousPositionId != request.resource.data.newPositionId
           || request.resource.data.previousManagerEmployeeId != request.resource.data.newManagerEmployeeId
@@ -917,6 +1549,7 @@ service cloud.firestore {
           'emergencyContactName',
           'emergencyContactPhone',
           'hrNotes',
+          'lastRequestId',
           'createdAt',
           'createdBy',
           'updatedAt',
@@ -958,6 +1591,14 @@ service cloud.firestore {
         && request.resource.data.emergencyContactPhone.size() <= 30
         && request.resource.data.hrNotes is string
         && request.resource.data.hrNotes.size() <= 2000
+        && (
+          !request.resource.data.keys().hasAny(['lastRequestId'])
+          || (
+            request.resource.data.lastRequestId is string
+            && request.resource.data.lastRequestId.size() > 0
+            && request.resource.data.lastRequestId.size() <= 80
+          )
+        )
         && request.resource.data.createdAt is timestamp
         && request.resource.data.createdBy is string
         && request.resource.data.updatedAt is timestamp
@@ -1437,6 +2078,7 @@ service cloud.firestore {
             'employmentStatus',
             'workMode',
             'lastMovementId',
+            'lastRequestId',
             'updatedAt',
             'updatedBy'
           ]);
@@ -1482,6 +2124,7 @@ service cloud.firestore {
             'emergencyContactName',
             'emergencyContactPhone',
             'hrNotes',
+            'lastRequestId',
             'updatedAt',
             'updatedBy'
           ]);
@@ -1585,6 +2228,816 @@ service cloud.firestore {
           ).data.workMode == request.resource.data.newWorkMode;
 
         allow update, delete: if false;
+      }
+
+      match /requestTypes/{requestTypeId} {
+        allow read: if activeMember(companyId);
+
+        allow create: if admin(companyId)
+          && validRequestTypeShape(companyId, requestTypeId)
+          && request.resource.data.status == 'published'
+          && request.resource.data.createdAt == request.time
+          && request.resource.data.createdBy == request.auth.uid
+          && existsAfter(
+            workflowPath(companyId, request.resource.data.workflowId)
+          );
+
+        allow update: if admin(companyId)
+          && validRequestTypeShape(companyId, requestTypeId)
+          && resource.data.status == 'published'
+          && request.resource.data.status == 'retired'
+          && request.resource.data.retiredAt == request.time
+          && request.resource.data.retiredBy == request.auth.uid
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'status',
+            'retiredAt',
+            'retiredBy'
+          ]);
+
+        allow delete: if false;
+      }
+
+      match /workflowDefinitions/{workflowId} {
+        allow read: if activeMember(companyId);
+
+        allow create: if admin(companyId)
+          && validWorkflowShape(companyId, workflowId)
+          && request.resource.data.createdAt == request.time
+          && request.resource.data.createdBy == request.auth.uid;
+
+        allow update, delete: if false;
+      }
+
+      match /workflowDrafts/{draftId} {
+        allow read: if admin(companyId);
+
+        allow create: if admin(companyId)
+          && validWorkflowDraftShape(companyId, draftId)
+          && request.resource.data.createdAt == request.time
+          && request.resource.data.createdBy == request.auth.uid
+          && request.resource.data.updatedAt == request.time
+          && request.resource.data.updatedBy == request.auth.uid;
+
+        allow update: if admin(companyId)
+          && validWorkflowDraftShape(companyId, draftId)
+          && request.resource.data.id == resource.data.id
+          && request.resource.data.companyId == resource.data.companyId
+          && request.resource.data.createdAt == resource.data.createdAt
+          && request.resource.data.createdBy == resource.data.createdBy
+          && request.resource.data.updatedAt == request.time
+          && request.resource.data.updatedBy == request.auth.uid;
+
+        allow delete: if admin(companyId);
+      }
+
+      match /requestCounters/{counterId} {
+        allow read: if activeMember(companyId);
+
+        allow create: if activeMember(companyId)
+          && request.resource.data.companyId == companyId
+          && request.resource.data.value is int
+          && request.resource.data.updatedAt == request.time
+          && request.resource.data.updatedBy == request.auth.uid
+          && request.resource.data.keys().hasOnly([
+            'companyId',
+            'value',
+            'updatedAt',
+            'updatedBy'
+          ])
+          && (
+            (
+              counterId == 'requests'
+              && request.resource.data.value == 1
+            )
+            || (
+              admin(companyId)
+              && counterId.matches(
+                '^workflow_[A-Za-z0-9_-]{1,80}$'
+              )
+              && request.resource.data.value >= 1
+              && request.resource.data.value <= 10000
+            )
+          );
+
+        allow update: if activeMember(companyId)
+          && request.resource.data.companyId == resource.data.companyId
+          && request.resource.data.value is int
+          && request.resource.data.updatedAt == request.time
+          && request.resource.data.updatedBy == request.auth.uid
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'value',
+            'updatedAt',
+            'updatedBy'
+          ])
+          && (
+            (
+              counterId == 'requests'
+              && request.resource.data.value == resource.data.value + 1
+            )
+            || (
+              admin(companyId)
+              && counterId.matches(
+                '^workflow_[A-Za-z0-9_-]{1,80}$'
+              )
+              && request.resource.data.value > resource.data.value
+              && request.resource.data.value <= 10000
+            )
+          );
+
+        allow delete: if false;
+      }
+
+      match /requests/{workflowRequestId} {
+        allow get: if canReadWorkflowRequest(companyId, resource.data);
+        allow list: if activeMember(companyId)
+          && (
+            admin(companyId)
+            || resource.data.requesterUid == request.auth.uid
+            || resource.data.currentAssigneeIds.hasAny([request.auth.uid])
+            || (
+              resource.data.confidentiality == 'normal'
+              && member(companyId).data.employeeId
+                == resource.data.managerEmployeeId
+            )
+          );
+
+        allow create: if validWorkflowRequestCreate(
+          companyId,
+          workflowRequestId
+        );
+
+        allow update: if validWorkflowRequestUpdate(
+            companyId,
+            workflowRequestId
+          )
+          && (
+            (
+              requestOwner(resource.data)
+              && resource.data.status == 'DRAFT'
+              && request.resource.data.status == 'DRAFT'
+              && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+                'payload',
+                'priority',
+                'updatedAt',
+                'updatedBy',
+                'revision',
+                'lastEventId'
+              ])
+            )
+            || (
+              requestOwner(resource.data)
+              && resource.data.status == 'DRAFT'
+              && validInitialRequestRoute(companyId)
+              && request.resource.data.currentStep == 0
+              && request.resource.data.currentStepType in [
+                'approval',
+                'fulfillment'
+              ]
+              && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+                'status',
+                'currentStepType',
+                'currentAssigneeIds',
+                'routeKind',
+                'dueAt',
+                'submittedAt',
+                'updatedAt',
+                'updatedBy',
+                'revision',
+                'lastEventId'
+              ])
+            )
+            || (
+              requestOwner(resource.data)
+              && resource.data.status in [
+                'SUBMITTED',
+                'PENDING_APPROVAL',
+                'NEEDS_INFORMATION',
+                'PENDING_FULFILLMENT',
+                'APPROVED'
+              ]
+              && request.resource.data.status == 'WITHDRAWN'
+              && request.resource.data.currentAssigneeIds.size() == 0
+              && request.resource.data.withdrawnAt == request.time
+              && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+                'status',
+                'currentAssigneeIds',
+                'outcome',
+                'withdrawnAt',
+                'updatedAt',
+                'updatedBy',
+                'revision',
+                'lastEventId'
+              ])
+            )
+            || (
+              requestOwner(resource.data)
+              && resource.data.status == 'NEEDS_INFORMATION'
+              && request.resource.data.status == resource.data.previousStatus
+              && request.resource.data.currentAssigneeIds
+                == resource.data.previousAssigneeIds
+              && request.resource.data.previousStatus == ''
+              && request.resource.data.previousAssigneeIds.size() == 0
+              && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+                'status',
+                'previousStatus',
+                'currentAssigneeIds',
+                'previousAssigneeIds',
+                'payload',
+                'dueAt',
+                'slaRemainingHours',
+                'updatedAt',
+                'updatedBy',
+                'revision',
+                'lastEventId'
+              ])
+            )
+            || (
+              requestAssigned(resource.data)
+              && managerActor(companyId)
+              && resource.data.status == 'PENDING_APPROVAL'
+              && request.resource.data.status == resource.data.status
+              && request.resource.data.delegationId != ''
+              && request.resource.data.originalAssigneeIds
+                == resource.data.currentAssigneeIds
+              && request.resource.data.currentAssigneeIds.size() == 1
+              && !request.resource.data.currentAssigneeIds.hasAny([
+                request.auth.uid,
+                resource.data.requesterUid
+              ])
+              && existsAfter(
+                delegationPath(
+                  companyId,
+                  request.resource.data.delegationId
+                )
+              )
+              && getAfter(
+                delegationPath(
+                  companyId,
+                  request.resource.data.delegationId
+                )
+              ).data.delegatorUid == request.auth.uid
+              && getAfter(
+                delegationPath(
+                  companyId,
+                  request.resource.data.delegationId
+                )
+              ).data.delegateUid
+                == request.resource.data.currentAssigneeIds[0]
+              && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+                'currentAssigneeIds',
+                'delegationId',
+                'originalAssigneeIds',
+                'dueAt',
+                'updatedAt',
+                'updatedBy',
+                'revision',
+                'lastEventId'
+              ])
+            )
+            || (
+              managerActor(companyId)
+              && resource.data.status == 'PENDING_APPROVAL'
+              && resource.data.delegationId != ''
+              && request.resource.data.status == resource.data.status
+              && request.resource.data.delegationId == ''
+              && request.resource.data.currentAssigneeIds
+                == resource.data.originalAssigneeIds
+              && request.resource.data.originalAssigneeIds.size() == 0
+              && existsAfter(
+                delegationPath(companyId, resource.data.delegationId)
+              )
+              && getAfter(
+                delegationPath(companyId, resource.data.delegationId)
+              ).data.delegatorUid == request.auth.uid
+              && getAfter(
+                delegationPath(companyId, resource.data.delegationId)
+              ).data.status == 'cancelled'
+              && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+                'currentAssigneeIds',
+                'delegationId',
+                'originalAssigneeIds',
+                'dueAt',
+                'updatedAt',
+                'updatedBy',
+                'revision',
+                'lastEventId'
+              ])
+            )
+            || (
+              requestAssigned(resource.data)
+              && resource.data.requesterUid != request.auth.uid
+              && (
+                (
+                  request.resource.data.status == 'NEEDS_INFORMATION'
+                  && request.resource.data.previousStatus
+                    == resource.data.status
+                  && request.resource.data.previousAssigneeIds
+                    == resource.data.currentAssigneeIds
+                  && request.resource.data.currentAssigneeIds.size() == 0
+                )
+                || (
+                  request.resource.data.status in ['REJECTED', 'CANCELLED']
+                  && request.resource.data.currentAssigneeIds.size() == 0
+                  && request.resource.data.completedAt == request.time
+                )
+                || (
+                  managerActor(companyId)
+                  && resource.data.status == 'PENDING_APPROVAL'
+                  && request.resource.data.status == 'PENDING_FULFILLMENT'
+                  && request.resource.data.routeKind == 'hr'
+                  && request.resource.data.currentStep
+                    == resource.data.currentStep + 1
+                  && request.resource.data.currentStepType == 'fulfillment'
+                  && request.resource.data.currentAssigneeIds.size() > 0
+                  && get(
+                    memberPath(
+                      companyId,
+                      request.resource.data.currentAssigneeIds[0]
+                    )
+                  ).data.role in ['super_admin', 'hr_admin']
+                )
+                || (
+                  admin(companyId)
+                  && request.resource.data.status in [
+                    'APPROVED',
+                    'PENDING_FULFILLMENT',
+                    'COMPLETED'
+                  ]
+                  && (
+                    request.resource.data.status != 'COMPLETED'
+                    || (
+                      request.resource.data.currentAssigneeIds.size() == 0
+                      && request.resource.data.completedAt == request.time
+                    )
+                  )
+                )
+              )
+              && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+                'status',
+                'previousStatus',
+                'currentStep',
+                'currentStepType',
+                'currentAssigneeIds',
+                'previousAssigneeIds',
+                'slaRemainingHours',
+                'routeKind',
+                'dueAt',
+                'outcome',
+                'fulfillmentRef',
+                'completedAt',
+                'updatedAt',
+                'updatedBy',
+                'revision',
+                'lastEventId'
+              ])
+            )
+          );
+
+        allow delete: if false;
+
+        match /tasks/{taskId} {
+          allow read: if canReadWorkflowRequest(
+            companyId,
+            get(workflowRequestPath(companyId, workflowRequestId)).data
+          );
+
+          allow create: if activeMember(companyId)
+            && existsAfter(
+              workflowRequestPath(companyId, workflowRequestId)
+            )
+            && getAfter(
+              workflowRequestPath(companyId, workflowRequestId)
+            ).data.updatedBy == request.auth.uid
+            && request.resource.data.id == taskId
+            && request.resource.data.companyId == companyId
+            && request.resource.data.requestId == workflowRequestId
+            && request.resource.data.assigneeUid is string
+            && exists(
+              memberPath(companyId, request.resource.data.assigneeUid)
+            )
+            && request.resource.data.stepIndex is int
+            && request.resource.data.stepIndex >= 0
+            && request.resource.data.stepType in [
+              'approval',
+              'acknowledgement',
+              'fulfillment',
+              'automated_validation'
+            ]
+            && request.resource.data.mode in [
+              'sequential',
+              'parallel_all',
+              'parallel_any'
+            ]
+            && request.resource.data.status == 'PENDING'
+            && request.resource.data.decision == ''
+            && request.resource.data.note is string
+            && request.resource.data.note.size() <= 2000
+            && request.resource.data.dueAt is timestamp
+            && request.resource.data.actedAt == null
+            && request.resource.data.createdAt == request.time
+            && request.resource.data.createdBy == request.auth.uid
+            && request.resource.data.updatedAt == request.time
+            && request.resource.data.updatedBy == request.auth.uid
+            && request.resource.data.keys().hasOnly([
+              'id',
+              'companyId',
+              'requestId',
+              'stepIndex',
+              'stepType',
+              'mode',
+              'assigneeUid',
+              'assigneeRole',
+              'status',
+              'decision',
+              'note',
+              'dueAt',
+              'actedAt',
+              'createdAt',
+              'createdBy',
+              'updatedAt',
+              'updatedBy'
+            ]);
+
+          allow update: if activeMember(companyId)
+            && (
+              resource.data.assigneeUid == request.auth.uid
+              || admin(companyId)
+              || (
+                get(
+                  workflowRequestPath(companyId, workflowRequestId)
+                ).data.requesterUid == request.auth.uid
+                && getAfter(
+                  workflowRequestPath(companyId, workflowRequestId)
+                ).data.status == 'WITHDRAWN'
+                && request.resource.data.status == 'CANCELLED'
+                && request.resource.data.decision == 'cancel'
+              )
+              || (
+                managerActor(companyId)
+                && get(
+                  workflowRequestPath(companyId, workflowRequestId)
+                ).data.delegationId != ''
+                && get(
+                  delegationPath(
+                    companyId,
+                    get(
+                      workflowRequestPath(companyId, workflowRequestId)
+                    ).data.delegationId
+                  )
+                ).data.delegatorUid == request.auth.uid
+              )
+            )
+            && resource.data.status == 'PENDING'
+            && request.resource.data.status in [
+              'APPROVED',
+              'REJECTED',
+              'NEEDS_INFORMATION',
+              'CANCELLED'
+            ]
+            && request.resource.data.decision in [
+              'approve',
+              'reject',
+              'needs_information',
+              'cancel'
+            ]
+            && request.resource.data.note is string
+            && request.resource.data.note.size() <= 2000
+            && request.resource.data.actedAt == request.time
+            && request.resource.data.updatedAt == request.time
+            && request.resource.data.updatedBy == request.auth.uid
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+              'status',
+              'decision',
+              'note',
+              'actedAt',
+              'updatedAt',
+              'updatedBy'
+            ]);
+
+          allow delete: if false;
+        }
+
+        match /events/{eventId} {
+          allow read: if canReadWorkflowRequest(
+            companyId,
+            get(workflowRequestPath(companyId, workflowRequestId)).data
+          );
+
+          allow create: if activeMember(companyId)
+            && existsAfter(
+              workflowRequestPath(companyId, workflowRequestId)
+            )
+            && (
+              getAfter(
+                workflowRequestPath(companyId, workflowRequestId)
+              ).data.updatedBy == request.auth.uid
+              || (
+                request.resource.data.type == 'COMMENTED'
+                && canReadWorkflowRequest(
+                  companyId,
+                  getAfter(
+                    workflowRequestPath(companyId, workflowRequestId)
+                  ).data
+                )
+              )
+            )
+            && request.resource.data.id == eventId
+            && request.resource.data.companyId == companyId
+            && request.resource.data.requestId == workflowRequestId
+            && request.resource.data.actorUid == request.auth.uid
+            && request.resource.data.actorName is string
+            && request.resource.data.actorName.size() <= 140
+            && request.resource.data.actorRole is string
+            && request.resource.data.type in [
+              'CREATED',
+              'DRAFT_SAVED',
+              'SUBMITTED',
+              'APPROVED',
+              'REJECTED',
+              'INFORMATION_REQUESTED',
+              'INFORMATION_PROVIDED',
+              'FULFILLED',
+              'WITHDRAWN',
+              'CANCELLED',
+              'COMMENTED',
+              'DELEGATED'
+            ]
+            && request.resource.data.message is string
+            && request.resource.data.message.size() <= 1000
+            && request.resource.data.payload is map
+            && request.resource.data.createdAt == request.time
+            && request.resource.data.keys().hasOnly([
+              'id',
+              'companyId',
+              'requestId',
+              'actorUid',
+              'actorName',
+              'actorRole',
+              'type',
+              'message',
+              'payload',
+              'createdAt'
+            ]);
+
+          allow update, delete: if false;
+        }
+
+        match /comments/{commentId} {
+          allow read: if canReadWorkflowRequest(
+              companyId,
+              get(workflowRequestPath(companyId, workflowRequestId)).data
+            )
+            && (
+              resource.data.visibility == 'participants'
+              || admin(companyId)
+            );
+
+          allow create: if activeMember(companyId)
+            && canReadWorkflowRequest(
+              companyId,
+              get(workflowRequestPath(companyId, workflowRequestId)).data
+            )
+            && request.resource.data.id == commentId
+            && request.resource.data.companyId == companyId
+            && request.resource.data.requestId == workflowRequestId
+            && request.resource.data.authorUid == request.auth.uid
+            && request.resource.data.authorName is string
+            && request.resource.data.authorRole is string
+            && request.resource.data.body is string
+            && request.resource.data.body.size() > 0
+            && request.resource.data.body.size() <= 2000
+            && request.resource.data.visibility in [
+              'participants',
+              'hr_only'
+            ]
+            && (
+              request.resource.data.visibility == 'participants'
+              || admin(companyId)
+            )
+            && request.resource.data.createdAt == request.time
+            && request.resource.data.keys().hasOnly([
+              'id',
+              'companyId',
+              'requestId',
+              'authorUid',
+              'authorName',
+              'authorRole',
+              'body',
+              'visibility',
+              'createdAt'
+            ]);
+
+          allow update, delete: if false;
+        }
+
+        match /attachments/{attachmentId} {
+          allow read: if canReadWorkflowRequest(
+            companyId,
+            get(workflowRequestPath(companyId, workflowRequestId)).data
+          );
+
+          allow create: if activeMember(companyId)
+            && canReadWorkflowRequest(
+              companyId,
+              get(workflowRequestPath(companyId, workflowRequestId)).data
+            )
+            && request.resource.data.id == attachmentId
+            && request.resource.data.companyId == companyId
+            && request.resource.data.requestId == workflowRequestId
+            && request.resource.data.addedBy == request.auth.uid
+            && request.resource.data.name is string
+            && request.resource.data.name.size() > 0
+            && request.resource.data.name.size() <= 180
+            && request.resource.data.url is string
+            && request.resource.data.url.matches('^https://.+$')
+            && request.resource.data.contentType is string
+            && request.resource.data.size is int
+            && request.resource.data.size >= 0
+            && request.resource.data.size <= 10485760
+            && request.resource.data.createdAt == request.time
+            && request.resource.data.keys().hasOnly([
+              'id',
+              'companyId',
+              'requestId',
+              'addedBy',
+              'name',
+              'url',
+              'contentType',
+              'size',
+              'createdAt'
+            ]);
+
+          allow update, delete: if false;
+        }
+      }
+
+      match /delegations/{delegationId} {
+        allow read: if admin(companyId)
+          || (
+            activeMember(companyId)
+            && (
+              resource.data.delegatorUid == request.auth.uid
+              || resource.data.delegateUid == request.auth.uid
+            )
+          );
+
+        allow create: if activeMember(companyId)
+          && (
+            request.resource.data.delegatorUid == request.auth.uid
+            || admin(companyId)
+          )
+          && request.resource.data.id == delegationId
+          && request.resource.data.companyId == companyId
+          && request.resource.data.delegateUid is string
+          && request.resource.data.delegateUid
+            != request.resource.data.delegatorUid
+          && exists(
+            memberPath(companyId, request.resource.data.delegateUid)
+          )
+          && (
+            get(
+              memberPath(companyId, request.resource.data.delegateUid)
+            ).data.role in ['super_admin', 'hr_admin', 'manager']
+            || get(
+              memberPath(companyId, request.resource.data.delegateUid)
+            ).data.isManager == true
+          )
+          && request.resource.data.startAt is timestamp
+          && request.resource.data.endAt is timestamp
+          && request.resource.data.startAt <= request.time
+          && request.resource.data.endAt > request.time
+          && request.resource.data.endAt > request.resource.data.startAt
+          && request.resource.data.status == 'active'
+          && request.resource.data.createdAt == request.time
+          && request.resource.data.createdBy == request.auth.uid
+          && request.resource.data.updatedAt == request.time
+          && request.resource.data.updatedBy == request.auth.uid
+          && request.resource.data.keys().hasOnly([
+            'id',
+            'companyId',
+            'delegatorUid',
+            'delegateUid',
+            'startAt',
+            'endAt',
+            'status',
+            'createdAt',
+            'createdBy',
+            'updatedAt',
+            'updatedBy'
+          ]);
+
+        allow update: if activeMember(companyId)
+          && (
+            resource.data.delegatorUid == request.auth.uid
+            || admin(companyId)
+          )
+          && request.resource.data.status == 'cancelled'
+          && request.resource.data.updatedAt == request.time
+          && request.resource.data.updatedBy == request.auth.uid
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'status',
+            'updatedAt',
+            'updatedBy'
+          ]);
+
+        allow delete: if false;
+      }
+
+      match /notifications/{notificationId} {
+        allow read: if activeMember(companyId)
+          && (
+            resource.data.recipientUid == request.auth.uid
+            || admin(companyId)
+          );
+
+        allow create: if activeMember(companyId)
+          && request.resource.data.id == notificationId
+          && request.resource.data.companyId == companyId
+          && request.resource.data.recipientUid is string
+          && exists(
+            memberPath(companyId, request.resource.data.recipientUid)
+          )
+          && request.resource.data.requestId is string
+          && existsAfter(
+            workflowRequestPath(
+              companyId,
+              request.resource.data.requestId
+            )
+          )
+          && canReadWorkflowRequest(
+            companyId,
+            getAfter(
+              workflowRequestPath(
+                companyId,
+                request.resource.data.requestId
+              )
+            ).data
+          )
+          && (
+            request.resource.data.recipientUid == request.auth.uid
+            || request.resource.data.recipientUid
+              == getAfter(
+                workflowRequestPath(
+                  companyId,
+                  request.resource.data.requestId
+                )
+              ).data.requesterUid
+            || getAfter(
+              workflowRequestPath(
+                companyId,
+                request.resource.data.requestId
+              )
+            ).data.currentAssigneeIds.hasAny([
+              request.resource.data.recipientUid
+            ])
+          )
+          && request.resource.data.titleEn is string
+          && request.resource.data.titleEn.size() <= 160
+          && request.resource.data.titleAr is string
+          && request.resource.data.titleAr.size() <= 160
+          && request.resource.data.bodyEn is string
+          && request.resource.data.bodyEn.size() <= 500
+          && request.resource.data.bodyAr is string
+          && request.resource.data.bodyAr.size() <= 500
+          && request.resource.data.kind in [
+            'assignment',
+            'status',
+            'information',
+            'sla'
+          ]
+          && request.resource.data.href is string
+          && request.resource.data.href.size() <= 300
+          && request.resource.data.href.matches(
+            '^(requests|approvals|hr-operations)[.]html[?]v=[0-9.]+&request=[A-Za-z0-9_-]+$'
+          )
+          && request.resource.data.readAt == null
+          && request.resource.data.createdAt == request.time
+          && request.resource.data.createdBy == request.auth.uid
+          && request.resource.data.keys().hasOnly([
+            'id',
+            'companyId',
+            'requestId',
+            'recipientUid',
+            'titleEn',
+            'titleAr',
+            'bodyEn',
+            'bodyAr',
+            'kind',
+            'href',
+            'readAt',
+            'createdAt',
+            'createdBy'
+          ]);
+
+        allow update: if activeMember(companyId)
+          && resource.data.recipientUid == request.auth.uid
+          && resource.data.readAt == null
+          && request.resource.data.readAt == request.time
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'readAt'
+          ]);
+
+        allow delete: if false;
       }
 
       match /auditLogs/{logId} {
