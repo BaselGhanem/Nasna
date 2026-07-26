@@ -116,7 +116,7 @@ const notification = ({
   bodyEn: requestId,
   bodyAr: requestId,
   kind,
-  href: `requests.html?v=20260726.4&request=${requestId}`,
+  href: `requests.html?v=20260727.1&request=${requestId}`,
   readAt: null,
   createdAt: serverTimestamp(),
   createdBy

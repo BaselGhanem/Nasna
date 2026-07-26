@@ -1,0 +1,327 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#099999">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="NASNA">
+  <title>Time Administration | NASNA</title>
+  <link rel="icon" href="assets/brand/nasna-mark.svg" type="image/svg+xml">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Almarai:wght@400;700;800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="workflow.css?v=20260727.1">
+  <link rel="stylesheet" href="time.css?v=20260727.1">
+</head>
+<body class="is-checking-auth" data-time-page="admin">
+  <div class="auth-loader" id="authLoader" role="status" aria-live="polite">
+    <img src="assets/brand/nasna-mark.svg" width="56" height="56" alt="">
+    <span data-i18n="checkingHrAccess">Checking HR time-administration access…</span>
+  </div>
+
+  <div class="workflow-app" id="timeApp" hidden>
+    <header class="topbar">
+      <a class="brand-link" href="dashboard.html?v=20260727.1" aria-label="NASNA dashboard">
+        <img src="assets/brand/nasna-mark.svg" width="42" height="42" alt="">
+        <span data-i18n="brandName">NASNA</span>
+      </a>
+      <nav class="topbar-actions" aria-label="Workspace navigation">
+        <a class="topbar-link" href="dashboard.html?v=20260727.1">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11 12 4l8 7v9h-6v-6h-4v6H4z"/></svg>
+          <span data-i18n="dashboard">Dashboard</span>
+        </a>
+        <a class="topbar-link" href="schedule.html?v=20260727.1">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3v4M17 3v4M4 9h16M5 5h14v16H5z"/></svg>
+          <span data-i18n="mySchedule">My schedule</span>
+        </a>
+        <a class="topbar-link" href="team-schedule.html?v=20260727.1">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="8" cy="8" r="3"/><circle cx="17" cy="9" r="2.5"/><path d="M3 20v-2a5 5 0 0 1 10 0v2M14 20v-1.5a4 4 0 0 1 7-2.6"/></svg>
+          <span data-i18n="teamSchedule">Team schedule</span>
+        </a>
+        <a class="topbar-link" href="hr-operations.html?v=20260727.1">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19h16M6 16V8h12v8M9 8V5h6v3"/><path d="M9 12h6"/></svg>
+          <span data-i18n="hrOperations">HR operations</span>
+        </a>
+        <a class="topbar-link is-current" href="time-admin.html?v=20260727.1">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 7v5l3 2M4 4l2 2M20 4l-2 2"/></svg>
+          <span data-i18n="timeAdmin">Time admin</span>
+        </a>
+        <button class="language-button" id="languageButton" type="button">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18"/></svg>
+          <span id="languageLabel">العربية</span>
+        </button>
+        <button class="signout-button" id="signOutButton" type="button">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 5H5v14h5M14 8l4 4-4 4m4-4H9"/></svg>
+          <span data-i18n="signOut">Sign out</span>
+        </button>
+      </nav>
+    </header>
+
+    <main class="page-shell">
+      <section class="page-heading">
+        <div>
+          <p class="eyebrow" data-i18n="stage11Foundation">Stage 11 · Scheduling foundation</p>
+          <h1 data-i18n="timeAdminTitle">Work calendars, shifts, and publishing controls</h1>
+          <p data-i18n="timeAdminCopy">HR publishes the company calendar and shift templates. Managers plan teams; attendance punches begin only in Stage 12.</p>
+        </div>
+        <div class="signed-in-card">
+          <span class="avatar" id="signedInAvatar">H</span>
+          <span>
+            <small data-i18n="administeringAs">Administering as</small>
+            <strong id="signedInEmail"></strong>
+          </span>
+        </div>
+      </section>
+
+      <section class="boundary-banner time-banner">
+        <div>
+          <span class="boundary-icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 7v5l3 2"/></svg>
+          </span>
+          <span>
+            <strong data-i18n="stageBoundary">Stage boundary is enforced</strong>
+            <p data-i18n="stageBoundaryCopy">This release schedules work. Clock-in, missing punches, overtime, and attendance corrections remain disabled until Stage 12; leave remains Stage 13.</p>
+          </span>
+        </div>
+        <span class="boundary-chip" data-i18n="sparkCompatible">Spark compatible</span>
+      </section>
+
+      <section class="stats-grid time-stats" aria-label="Time setup statistics">
+        <article class="stat-card">
+          <span data-i18n="activePolicy">Active policy</span>
+          <strong id="policyVersion">—</strong>
+          <small data-i18n="versionedCalendar">Versioned work calendar</small>
+        </article>
+        <article class="stat-card">
+          <span data-i18n="activeTemplates">Active templates</span>
+          <strong id="activeTemplateCount">0</strong>
+          <small data-i18n="availableForPlanning">Available for planning</small>
+        </article>
+        <article class="stat-card">
+          <span data-i18n="publishedHolidays">Published holidays</span>
+          <strong id="activeHolidayCount">0</strong>
+          <small id="holidayYearLabel" data-i18n="calendarNotConfirmed">Calendar not confirmed</small>
+        </article>
+        <article class="stat-card">
+          <span data-i18n="shiftServices">Shift services</span>
+          <strong id="requestServiceStatus" data-i18n="inactive">Inactive</strong>
+          <small data-i18n="activatedAfterReadiness">Activated only after readiness</small>
+        </article>
+      </section>
+
+      <section class="time-admin-grid">
+        <article class="panel">
+          <header class="panel-header">
+            <div>
+              <p class="eyebrow" data-i18n="calendarPolicy">Calendar policy</p>
+              <h2 data-i18n="publishWorkPolicy">Publish a work-calendar version</h2>
+              <p data-i18n="policyImmutableCopy">Publishing creates a new immutable policy version and makes it active for future rosters and SLA dates.</p>
+            </div>
+          </header>
+          <form class="time-form" id="policyForm">
+            <div class="form-grid">
+              <div class="form-field">
+                <label for="policyTimezone" data-i18n="timezone">Timezone</label>
+                <input id="policyTimezone" maxlength="80" value="Asia/Amman" required>
+              </div>
+              <div class="form-field">
+                <label for="weekStartsOn" data-i18n="weekStartsOn">Week starts on</label>
+                <select id="weekStartsOn">
+                  <option value="0" data-i18n="sunday">Sunday</option>
+                  <option value="1" data-i18n="monday" selected>Monday</option>
+                  <option value="6" data-i18n="saturday">Saturday</option>
+                </select>
+              </div>
+              <div class="form-field">
+                <label for="workdayStart" data-i18n="businessDayStart">Business day starts</label>
+                <input id="workdayStart" type="time" value="09:00" required>
+              </div>
+              <div class="form-field">
+                <label for="workdayEnd" data-i18n="businessDayEnd">Business day ends</label>
+                <input id="workdayEnd" type="time" value="17:00" required>
+              </div>
+              <div class="form-field">
+                <label for="dailyHours" data-i18n="standardDailyHours">Standard daily hours</label>
+                <input id="dailyHours" type="number" min="1" max="24" step="0.5" value="8" required>
+              </div>
+              <div class="form-field">
+                <label for="maxDailyHours" data-i18n="maximumDailyHours">Maximum daily hours</label>
+                <input id="maxDailyHours" type="number" min="1" max="24" step="0.5" value="12" required>
+              </div>
+              <div class="form-field">
+                <label for="maxWeeklyHours" data-i18n="maximumWeeklyHours">Maximum weekly hours</label>
+                <input id="maxWeeklyHours" type="number" min="1" max="168" step="0.5" value="48" required>
+              </div>
+              <div class="form-field">
+                <label for="minimumRestHours" data-i18n="minimumRestHours">Minimum rest hours</label>
+                <input id="minimumRestHours" type="number" min="0" max="24" step="0.5" value="11" required>
+              </div>
+              <div class="form-field">
+                <label for="conflictMode" data-i18n="restConflictPolicy">Rest conflict policy</label>
+                <select id="conflictMode">
+                  <option value="block" data-i18n="blockPublishing">Block publishing</option>
+                  <option value="warn" data-i18n="hrWarningOverride">HR warning override</option>
+                </select>
+              </div>
+              <div class="form-field">
+                <label for="holidayWorkMode" data-i18n="holidayWorkPolicy">Holiday work policy</label>
+                <select id="holidayWorkMode">
+                  <option value="block" data-i18n="blockPublishing">Block publishing</option>
+                  <option value="warn" data-i18n="hrWarningOverride">HR warning override</option>
+                </select>
+              </div>
+              <div class="form-field">
+                <label for="policyEffectiveFrom" data-i18n="effectiveFrom">Effective from</label>
+                <input id="policyEffectiveFrom" type="date" required>
+              </div>
+              <fieldset class="form-field form-field--wide weekday-field">
+                <legend data-i18n="workingDays">Working days</legend>
+                <label><input type="checkbox" name="workingDay" value="0"><span data-i18n="sun">Sun</span></label>
+                <label><input type="checkbox" name="workingDay" value="1" checked><span data-i18n="mon">Mon</span></label>
+                <label><input type="checkbox" name="workingDay" value="2" checked><span data-i18n="tue">Tue</span></label>
+                <label><input type="checkbox" name="workingDay" value="3" checked><span data-i18n="wed">Wed</span></label>
+                <label><input type="checkbox" name="workingDay" value="4" checked><span data-i18n="thu">Thu</span></label>
+                <label><input type="checkbox" name="workingDay" value="5"><span data-i18n="fri">Fri</span></label>
+                <label><input type="checkbox" name="workingDay" value="6"><span data-i18n="sat">Sat</span></label>
+              </fieldset>
+            </div>
+            <p class="form-error" id="policyError" role="alert"></p>
+            <div class="panel-actions">
+              <button class="primary-button" type="submit" data-i18n="publishPolicy">Publish policy version</button>
+            </div>
+          </form>
+        </article>
+
+        <article class="panel">
+          <header class="panel-header">
+            <div>
+              <p class="eyebrow" data-i18n="shiftLibrary">Shift library</p>
+              <h2 data-i18n="shiftTemplates">Shift templates</h2>
+              <p data-i18n="shiftTemplatesCopy">Standard, flexible, and split templates are copied into each published assignment.</p>
+            </div>
+            <button class="secondary-button" id="newTemplateButton" type="button" data-i18n="newTemplate">New template</button>
+          </header>
+          <div class="admin-list" id="templateList"></div>
+          <div class="empty-state compact-empty" id="templateEmpty" hidden>
+            <h3 data-i18n="noTemplates">No shift templates</h3>
+            <p data-i18n="noTemplatesCopy">Publish the policy, then add the first template.</p>
+          </div>
+        </article>
+
+        <article class="panel">
+          <header class="panel-header">
+            <div>
+              <p class="eyebrow" data-i18n="holidayCalendar">Holiday calendar</p>
+              <h2 data-i18n="publishedDaysOff">Published days off</h2>
+              <p data-i18n="holidayCalendarCopy">A holiday may apply company-wide or to one branch. Confirm the year after review.</p>
+            </div>
+            <button class="secondary-button" id="newHolidayButton" type="button" data-i18n="newHoliday">New holiday</button>
+          </header>
+          <div class="calendar-confirm">
+            <label for="holidayCalendarYear" data-i18n="calendarYear">Calendar year</label>
+            <input id="holidayCalendarYear" type="number" min="2020" max="2100">
+            <button class="secondary-button" id="confirmHolidayCalendar" type="button" data-i18n="confirmCalendar">Confirm year</button>
+          </div>
+          <div class="admin-list" id="holidayList"></div>
+          <div class="empty-state compact-empty" id="holidayEmpty" hidden>
+            <h3 data-i18n="noHolidays">No holidays published</h3>
+            <p data-i18n="noHolidaysCopy">Add official dates or confirm that the selected year has none.</p>
+          </div>
+        </article>
+
+        <article class="panel readiness-panel">
+          <header class="panel-header">
+            <div>
+              <p class="eyebrow" data-i18n="activationGate">Activation gate</p>
+              <h2 data-i18n="enableShiftRequests">Enable shift-change services</h2>
+              <p data-i18n="enableShiftRequestsCopy">Stage 10 request types appear only after Stage 11 has all required reference data.</p>
+            </div>
+          </header>
+          <div class="readiness-list">
+            <span id="policyReady"><b>○</b><span data-i18n="readyPolicy">Published policy</span></span>
+            <span id="holidayReady"><b>○</b><span data-i18n="readyHoliday">Confirmed holiday year</span></span>
+            <span id="templateReady"><b>○</b><span data-i18n="readyTemplates">Active shift template</span></span>
+            <span id="rosterReady"><b>○</b><span data-i18n="readyRoster">Published roster</span></span>
+          </div>
+          <p class="spark-note" data-i18n="requestActivationCopy">Activation publishes immutable Shift Change and Shift Swap definitions. HR performs the final schedule update after manager approval.</p>
+          <button class="primary-button" id="activateRequestsButton" type="button" data-i18n="activateShiftRequests">Activate shift requests</button>
+        </article>
+
+        <article class="panel roster-overview">
+          <header class="panel-header">
+            <div>
+              <p class="eyebrow" data-i18n="publishingHistory">Publishing history</p>
+              <h2 data-i18n="recentRosters">Recent rosters</h2>
+            </div>
+            <a class="secondary-button" href="team-schedule.html?v=20260727.1" data-i18n="openPlanner">Open planner</a>
+          </header>
+          <div class="admin-list" id="rosterList"></div>
+          <div class="empty-state compact-empty" id="rosterEmpty" hidden>
+            <h3 data-i18n="noRosters">No rosters yet</h3>
+            <p data-i18n="noRostersCopy">The first draft appears after HR or a manager saves a week.</p>
+          </div>
+        </article>
+      </section>
+    </main>
+  </div>
+
+  <div class="modal" id="templateModal" hidden>
+    <article class="modal-card time-modal-card" role="dialog" aria-modal="true" aria-labelledby="templateModalTitle">
+      <header class="modal-header">
+        <div><p class="eyebrow" data-i18n="shiftTemplate">Shift template</p><h2 id="templateModalTitle" data-i18n="newTemplate">New template</h2></div>
+        <button class="modal-close" id="closeTemplateModal" type="button" aria-label="Close"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button>
+      </header>
+      <form class="time-form" id="templateForm">
+        <input id="templateExistingId" type="hidden">
+        <div class="form-grid">
+          <div class="form-field"><label for="templateCode" data-i18n="code">Code</label><input id="templateCode" maxlength="20" placeholder="DAY" required></div>
+          <div class="form-field"><label for="templateKind" data-i18n="templateKind">Template kind</label><select id="templateKind"><option value="standard" data-i18n="standard">Standard</option><option value="flexible" data-i18n="flexible">Flexible</option><option value="split" data-i18n="split">Split</option></select></div>
+          <div class="form-field"><label for="templateNameEn" data-i18n="nameEnglish">English name</label><input id="templateNameEn" maxlength="100" required></div>
+          <div class="form-field"><label for="templateNameAr" data-i18n="nameArabic">Arabic name</label><input id="templateNameAr" maxlength="100" dir="rtl" required></div>
+          <div class="form-field"><label for="segmentOneStart" data-i18n="segmentOneStart">First segment starts</label><input id="segmentOneStart" type="time" value="09:00" required></div>
+          <div class="form-field"><label for="segmentOneEnd" data-i18n="segmentOneEnd">First segment ends</label><input id="segmentOneEnd" type="time" value="17:00" required></div>
+          <div class="form-field"><label for="segmentOneBreak" data-i18n="breakMinutes">Break minutes</label><input id="segmentOneBreak" type="number" min="0" max="240" value="60" required></div>
+          <div class="form-field" id="flexWindowField" hidden><label for="flexWindowMinutes" data-i18n="flexWindow">Flex window minutes</label><input id="flexWindowMinutes" type="number" min="0" max="240" value="60"></div>
+          <div class="form-field split-field" hidden><label for="segmentTwoStart" data-i18n="segmentTwoStart">Second segment starts</label><input id="segmentTwoStart" type="time" value="18:00"></div>
+          <div class="form-field split-field" hidden><label for="segmentTwoEnd" data-i18n="segmentTwoEnd">Second segment ends</label><input id="segmentTwoEnd" type="time" value="22:00"></div>
+          <div class="form-field split-field" hidden><label for="segmentTwoBreak" data-i18n="breakMinutes">Break minutes</label><input id="segmentTwoBreak" type="number" min="0" max="240" value="0"></div>
+          <div class="form-field"><label for="templateStatus" data-i18n="status">Status</label><select id="templateStatus"><option value="active" data-i18n="active">Active</option><option value="inactive" data-i18n="inactive">Inactive</option></select></div>
+        </div>
+        <p class="form-error" id="templateError" role="alert"></p>
+        <div class="modal-actions"><button class="secondary-button" id="cancelTemplate" type="button" data-i18n="cancel">Cancel</button><button class="primary-button" type="submit" data-i18n="saveTemplate">Save template</button></div>
+      </form>
+    </article>
+  </div>
+
+  <div class="modal" id="holidayModal" hidden>
+    <article class="modal-card time-modal-card" role="dialog" aria-modal="true" aria-labelledby="holidayModalTitle">
+      <header class="modal-header">
+        <div><p class="eyebrow" data-i18n="holidayCalendar">Holiday calendar</p><h2 id="holidayModalTitle" data-i18n="newHoliday">New holiday</h2></div>
+        <button class="modal-close" id="closeHolidayModal" type="button" aria-label="Close"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button>
+      </header>
+      <form class="time-form" id="holidayForm">
+        <input id="holidayExistingId" type="hidden">
+        <div class="form-grid">
+          <div class="form-field"><label for="holidayDate" data-i18n="date">Date</label><input id="holidayDate" type="date" required></div>
+          <div class="form-field"><label for="holidayBranch" data-i18n="branchScope">Branch scope</label><select id="holidayBranch"><option value="" data-i18n="allBranches">All branches</option></select></div>
+          <div class="form-field"><label for="holidayNameEn" data-i18n="nameEnglish">English name</label><input id="holidayNameEn" maxlength="120" required></div>
+          <div class="form-field"><label for="holidayNameAr" data-i18n="nameArabic">Arabic name</label><input id="holidayNameAr" maxlength="120" dir="rtl" required></div>
+          <div class="form-field"><label for="holidayStatus" data-i18n="status">Status</label><select id="holidayStatus"><option value="active" data-i18n="active">Active</option><option value="inactive" data-i18n="inactive">Inactive</option></select></div>
+          <label class="checkbox-row"><input id="holidayPaid" type="checkbox" checked><span data-i18n="paidHoliday">Paid holiday</span></label>
+        </div>
+        <p class="form-error" id="holidayError" role="alert"></p>
+        <div class="modal-actions"><button class="secondary-button" id="cancelHoliday" type="button" data-i18n="cancel">Cancel</button><button class="primary-button" type="submit" data-i18n="saveHoliday">Save holiday</button></div>
+      </form>
+    </article>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite">
+    <span id="toastMessage"></span>
+  </div>
+  <script type="module" src="time.js?v=20260727.1"></script>
+</body>
+</html>

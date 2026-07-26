@@ -44,7 +44,7 @@ import {
   toDate,
   withdrawRequest,
   workflowById
-} from "./workflow-core.js?v=20260726.4";
+} from "./workflow-core.js?v=20260727.1";
 
 const pageType = document.body.dataset.page || `requests`;
 const storageKey = `nasna-language`;
@@ -94,7 +94,7 @@ const translations = {
     closedSuccessfully: `Closed successfully`,
     serviceCatalog: `Service catalog`,
     startRequest: `Start a request`,
-    catalogCopy: `Only Stage 10 services are active. Leave, attendance, payroll, and other future services stay hidden until their stages.`,
+    catalogCopy: `Stage 10 HR services and activated Stage 11 shift services appear here. Attendance, leave, payroll, and later services remain hidden until their stages.`,
     catalogNotReady: `Service catalog is not ready`,
     catalogNotReadyCopy: `An HR administrator needs to initialize the published Stage 10 request definitions.`,
     requestHistory: `Request history`,
@@ -286,6 +286,16 @@ const translations = {
     from: `From`,
     to: `to`,
     noEmployeeFile: `Your account needs an employee file before it can create a request.`,
+    shiftAssignmentMissing: `The published shift could not be found. Open your schedule and start the request again.`,
+    shiftAssignmentInvalid: `This shift is not an active published assignment in your own schedule.`,
+    requestedShiftInvalid: `Enter a different active shift code from the Stage 11 shift library.`,
+    colleagueShiftMissing: `The colleague shift assignment could not be found.`,
+    colleagueShiftInvalid: `A swap must use another published shift on the same date and under the same manager.`,
+    scheduleChanged: `The published schedule changed while this request was open. Review the latest schedule before trying again.`,
+    timePolicyRequired: `Stage 11 needs an active time policy before this request can be completed.`,
+    scheduleConflictBlocked: `The requested schedule violates a blocking holiday, rest, daily-hours, or weekly-hours rule.`,
+    scheduleWarningOverrideRequired: `This schedule has a policy warning. Add a fulfillment note of at least 8 characters to record the HR override.`,
+    scheduleTimeInvalid: `The requested shift uses a local time that does not exist in the company timezone on that date.`,
     teamRequestNeedsManager: `This service is available only to managers with direct reports.`,
     noIndependentHr: `A request cannot be routed to its own requester. Add another active HR administrator or an upper manager.`,
     requiredField: `Complete all required fields.`,
@@ -367,7 +377,7 @@ const translations = {
     closedSuccessfully: `أُغلقت بنجاح`,
     serviceCatalog: `دليل الخدمات`,
     startRequest: `ابدأ طلبًا`,
-    catalogCopy: `خدمات المرحلة 10 فقط مفعلة. الإجازات والحضور والرواتب والخدمات المستقبلية مخفية حتى مراحلها.`,
+    catalogCopy: `تظهر هنا خدمات HR للمرحلة 10 وخدمات الورديات المفعّلة من المرحلة 11. يبقى الحضور والإجازات والرواتب والخدمات اللاحقة مخفيًا حتى مراحله.`,
     catalogNotReady: `دليل الخدمات غير جاهز`,
     catalogNotReadyCopy: `يجب على مسؤول HR تهيئة تعريفات الطلبات المنشورة للمرحلة 10.`,
     requestHistory: `سجل الطلبات`,
@@ -559,6 +569,16 @@ const translations = {
     from: `من`,
     to: `حتى`,
     noEmployeeFile: `يحتاج حسابك إلى ملف موظف قبل إنشاء طلب.`,
+    shiftAssignmentMissing: `تعذر العثور على الوردية المنشورة. افتح جدولك وابدأ الطلب مجددًا.`,
+    shiftAssignmentInvalid: `هذه الوردية ليست تعيينًا منشورًا فعالًا ضمن جدولك.`,
+    requestedShiftInvalid: `أدخل رمز وردية فعالًا ومختلفًا من مكتبة المرحلة 11.`,
+    colleagueShiftMissing: `تعذر العثور على تعيين وردية الزميل.`,
+    colleagueShiftInvalid: `يجب أن يستخدم التبديل وردية منشورة لموظف آخر في التاريخ نفسه وتحت المدير نفسه.`,
+    scheduleChanged: `تغيّر الجدول المنشور أثناء بقاء الطلب مفتوحًا. راجع أحدث جدول قبل المحاولة مجددًا.`,
+    timePolicyRequired: `تحتاج المرحلة 11 إلى سياسة وقت فعالة قبل إكمال هذا الطلب.`,
+    scheduleConflictBlocked: `الجدول المطلوب يخالف قاعدة مانعة للعطلة أو الراحة أو الساعات اليومية أو الأسبوعية.`,
+    scheduleWarningOverrideRequired: `يوجد تحذير في سياسة الجدول. أضف ملاحظة تنفيذ من 8 أحرف على الأقل لتوثيق تجاوز HR.`,
+    scheduleTimeInvalid: `تستخدم الوردية المطلوبة وقتًا محليًا غير موجود في المنطقة الزمنية للشركة في ذلك التاريخ.`,
     teamRequestNeedsManager: `هذه الخدمة متاحة فقط لمدير لديه موظفون يتبعون له مباشرة.`,
     noIndependentHr: `لا يمكن توجيه الطلب إلى صاحبه. أضف مسؤول HR فعالًا آخر أو مديرًا أعلى.`,
     requiredField: `أكمل كل الحقول المطلوبة.`,
@@ -804,6 +824,16 @@ const showToast = (key, error = false) => {
 
 const errorKey = error => ({
   [`employee-file-required`]: `noEmployeeFile`,
+  [`shift-assignment-missing`]: `shiftAssignmentMissing`,
+  [`shift-assignment-invalid`]: `shiftAssignmentInvalid`,
+  [`requested-shift-invalid`]: `requestedShiftInvalid`,
+  [`colleague-shift-missing`]: `colleagueShiftMissing`,
+  [`colleague-shift-invalid`]: `colleagueShiftInvalid`,
+  [`schedule-changed`]: `scheduleChanged`,
+  [`time-policy-required`]: `timePolicyRequired`,
+  [`schedule-conflict-blocked`]: `scheduleConflictBlocked`,
+  [`schedule-warning-override-required`]: `scheduleWarningOverrideRequired`,
+  [`schedule-time-invalid`]: `scheduleTimeInvalid`,
   [`independent-hr-required`]: `noIndependentHr`,
   [`required-field`]: `requiredField`,
   [`information-response-required`]: `informationResponseRequired`,
@@ -982,6 +1012,8 @@ const catalogIcon = code => ({
   confidential_request: `<rect x="5" y="10" width="14" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/>`,
   team_movement: `<circle cx="8" cy="8" r="3"/><circle cx="17" cy="9" r="2.5"/><path d="M2.5 20v-2a5.5 5.5 0 0 1 11 0v2M15 17h6m-3-3 3 3-3 3"/>`,
   transaction_correction: `<path d="M5 6h14M5 12h9M5 18h7"/><path d="m15 17 2 2 4-5"/>`,
+  shift_change: `<circle cx="12" cy="12" r="8"/><path d="M12 7v5l3 2M7 4l-2 2m12-2 2 2"/>`,
+  shift_swap: `<path d="M5 7h12l-3-3m3 3-3 3M19 17H7l3 3m-3-3 3-3"/>`,
   custom_company_request: `<path d="M4 19h16M6 16V8h12v8M9 8V5h6v3"/><path d="M12 11v3m-1.5-1.5h3"/>`
 }[code] || `<path d="M6 3h12v18H6zM9 8h6m-6 4h6"/>`);
 
@@ -2085,7 +2117,23 @@ const initialize = async user => {
   renderNotifications();
   reveal();
 
-  const deepLinkId = new URLSearchParams(window.location.search).get(`request`);
+  const searchParams = new URLSearchParams(window.location.search);
+  const deepLinkTypeCode = searchParams.get(`type`);
+  if (pageType === `requests` && deepLinkTypeCode) {
+    const deepLinkType = state.requestTypes.find(type => (
+      type.code === deepLinkTypeCode
+    ));
+    if (deepLinkType) {
+      openRequestForm(deepLinkType.id);
+      deepLinkType.formSchema.forEach(schemaField => {
+        const value = searchParams.get(schemaField.key);
+        const input = document.getElementById(`field-${schemaField.key}`);
+        if (input && value !== null) input.value = value;
+      });
+    }
+  }
+
+  const deepLinkId = searchParams.get(`request`);
   const deepLinked = requests.find(record => record.id === deepLinkId)
     || (deepLinkId
       ? await loadRequestById(deepLinkId).catch(() => null)

@@ -18,10 +18,10 @@ import {
   where,
   writeBatch
 } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-firestore.js";
-import { auth } from "./firebase-config.js?v=20260726.4";
-import { db } from "./firestore-config.js?v=20260726.4";
+import { auth } from "./firebase-config.js?v=20260727.1";
+import { db } from "./firestore-config.js?v=20260727.1";
 
-const release = `20260726.4`;
+const release = `20260727.1`;
 const adminRoles = new Set([`super_admin`, `hr_admin`]);
 const terminalStatuses = new Set([
   `COMPLETED`,
@@ -42,7 +42,10 @@ const state = {
   configurationTypes: [],
   workflowDrafts: [],
   requestTypes: [],
-  workflows: []
+  workflows: [],
+  timeSettings: null,
+  timePolicy: null,
+  timeHolidays: []
 };
 
 const field = (key, type, labelEn, labelAr, options = {}) => ({
@@ -365,6 +368,186 @@ const timestampFromInput = value => {
   return Number.isNaN(date.getTime()) ? null : Timestamp.fromDate(date);
 };
 
+const timezoneParts = (value, timezone) => {
+  try {
+    const formatter = new Intl.DateTimeFormat(`en-CA-u-hc-h23`, {
+      timeZone: timezone,
+      year: `numeric`,
+      month: `2-digit`,
+      day: `2-digit`,
+      hour: `2-digit`,
+      minute: `2-digit`,
+      second: `2-digit`,
+      hourCycle: `h23`
+    });
+    return Object.fromEntries(
+      formatter.formatToParts(value)
+        .filter(part => part.type !== `literal`)
+        .map(part => [part.type, Number(part.value)])
+    );
+  } catch {
+    return null;
+  }
+};
+
+const zonedDateToUtc = (
+  workDate,
+  timeValue,
+  timezone,
+  dayOffset = 0
+) => {
+  const dateMatch = String(workDate || ``).match(
+    /^(\d{4})-(\d{2})-(\d{2})$/
+  );
+  const timeMatch = String(timeValue || ``).match(/^(\d{2}):(\d{2})$/);
+  if (!dateMatch || !timeMatch || !timezone) return null;
+  const targetDate = new Date(Date.UTC(
+    Number(dateMatch[1]),
+    Number(dateMatch[2]) - 1,
+    Number(dateMatch[3]) + Number(dayOffset || 0),
+    Number(timeMatch[1]),
+    Number(timeMatch[2])
+  ));
+  const target = {
+    year: targetDate.getUTCFullYear(),
+    month: targetDate.getUTCMonth() + 1,
+    day: targetDate.getUTCDate(),
+    hour: targetDate.getUTCHours(),
+    minute: targetDate.getUTCMinutes()
+  };
+  const targetAsUtc = Date.UTC(
+    target.year,
+    target.month - 1,
+    target.day,
+    target.hour,
+    target.minute
+  );
+  let guess = targetAsUtc;
+  for (let iteration = 0; iteration < 4; iteration += 1) {
+    const parts = timezoneParts(new Date(guess), timezone);
+    if (!parts) return null;
+    const renderedAsUtc = Date.UTC(
+      parts.year,
+      parts.month - 1,
+      parts.day,
+      parts.hour,
+      parts.minute
+    );
+    const correction = targetAsUtc - renderedAsUtc;
+    guess += correction;
+    if (correction === 0) break;
+  }
+  const finalParts = timezoneParts(new Date(guess), timezone);
+  if (
+    !finalParts
+    || finalParts.year !== target.year
+    || finalParts.month !== target.month
+    || finalParts.day !== target.day
+    || finalParts.hour !== target.hour
+    || finalParts.minute !== target.minute
+  ) {
+    return null;
+  }
+  return new Date(guess);
+};
+
+const timestampFromScheduleTime = (workDate, timeValue, dayOffset = 0) => {
+  const date = zonedDateToUtc(
+    workDate,
+    timeValue,
+    state.timePolicy?.timezone || `Asia/Amman`,
+    dayOffset
+  );
+  return date ? Timestamp.fromDate(date) : null;
+};
+
+const scheduleSegmentsFromTemplate = (workDate, template, locationId) => {
+  const records = (
+    Array.isArray(template?.segments) ? template.segments : []
+  ).map(segment => {
+    const [startHour, startMinute] = segment.startTime.split(`:`).map(Number);
+    const [endHour, endMinute] = segment.endTime.split(`:`).map(Number);
+    const startMinutes = startHour * 60 + startMinute;
+    const endMinutes = endHour * 60 + endMinute;
+    return {
+      shiftTemplateId: template.id,
+      startAt: timestampFromScheduleTime(workDate, segment.startTime),
+      endAt: timestampFromScheduleTime(
+        workDate,
+        segment.endTime,
+        endMinutes <= startMinutes ? 1 : 0
+      ),
+      breakMinutes: Number(segment.breakMinutes || 0),
+      locationId
+    };
+  });
+  if (records.some(record => !record.startAt || !record.endAt)) {
+    throw new Error(`schedule-time-invalid`);
+  }
+  return records;
+};
+
+const scheduleDateKey = value => {
+  const date = toDate(value);
+  if (!date) return ``;
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, `0`);
+  const day = String(date.getDate()).padStart(2, `0`);
+  return `${year}-${month}-${day}`;
+};
+
+const addScheduleDays = (value, days) => {
+  const match = String(value || ``).match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!match) return ``;
+  const date = new Date(Date.UTC(
+    Number(match[1]),
+    Number(match[2]) - 1,
+    Number(match[3]) + Number(days || 0)
+  ));
+  return [
+    date.getUTCFullYear(),
+    String(date.getUTCMonth() + 1).padStart(2, `0`),
+    String(date.getUTCDate()).padStart(2, `0`)
+  ].join(`-`);
+};
+
+const scheduleWeekStart = value => {
+  const match = String(value || ``).match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!match) return ``;
+  const date = new Date(Date.UTC(
+    Number(match[1]),
+    Number(match[2]) - 1,
+    Number(match[3])
+  ));
+  const configuredStart = Number(state.timePolicy?.weekStartsOn ?? 0);
+  const delta = (date.getUTCDay() - configuredStart + 7) % 7;
+  return addScheduleDays(value, -delta);
+};
+
+const scheduleAssignmentBounds = assignment => {
+  const segments = Array.isArray(assignment?.segments)
+    ? assignment.segments
+    : [];
+  const starts = segments
+    .map(segment => toDate(segment.startAt))
+    .filter(Boolean)
+    .sort((left, right) => left - right);
+  const ends = segments
+    .map(segment => toDate(segment.endAt))
+    .filter(Boolean)
+    .sort((left, right) => right - left);
+  return {
+    start: starts[0] || null,
+    end: ends[0] || null
+  };
+};
+
+const scheduleRequestAssignmentId = (requestId, employeeId) => (
+  `SHIFT-${requestId}-${employeeId}`
+    .replaceAll(/[^a-zA-Z0-9_-]/g, ``)
+    .slice(0, 180)
+);
+
 const dateInputValue = value => {
   const date = toDate(value);
   if (!date) return ``;
@@ -426,6 +609,26 @@ const loadSession = async user => {
     employee.authUid === user.uid
     || employee.id === membership.employeeId
   )) || null;
+
+  const [timeSettingsSnapshot, holidaysSnapshot] = await Promise.all([
+    getDoc(companyDoc(`timeSettings`, `current`)),
+    getDocs(query(companyCollection(`holidays`), limit(500)))
+  ]);
+  state.timeSettings = timeSettingsSnapshot.exists()
+    ? timeSettingsSnapshot.data()
+    : null;
+  state.timeHolidays = snapshotRows(holidaysSnapshot)
+    .filter(holiday => holiday.status === `active`);
+  if (state.timeSettings?.activePolicyId) {
+    const policySnapshot = await getDoc(
+      companyDoc(`timePolicies`, state.timeSettings.activePolicyId)
+    );
+    state.timePolicy = policySnapshot.exists()
+      ? policySnapshot.data()
+      : null;
+  } else {
+    state.timePolicy = null;
+  }
 
   return state;
 };
@@ -837,9 +1040,95 @@ const activeHrMembers = excludedUid => state.members
   })
   .slice(0, 5);
 
-const dueTimestamp = hours => Timestamp.fromDate(
-  new Date(Date.now() + Number(hours || 24) * 60 * 60 * 1000)
-);
+const clockMinutes = value => {
+  const match = String(value || ``).match(/^(\d{2}):(\d{2})$/);
+  return match ? Number(match[1]) * 60 + Number(match[2]) : null;
+};
+
+const clockValue = minutes => {
+  const normalized = Math.max(0, Math.min(1439, Math.round(minutes)));
+  return `${String(Math.floor(normalized / 60)).padStart(2, `0`)}:${String(normalized % 60).padStart(2, `0`)}`;
+};
+
+const businessDueDate = (hours, nowValue = new Date()) => {
+  const policy = state.timePolicy;
+  const baseNow = toDate(nowValue) || new Date();
+  if (
+    !policy
+    || state.timeSettings?.activePolicyId !== policy.id
+    || !Array.isArray(policy.workingDays)
+  ) {
+    return new Date(
+      baseNow.getTime() + Number(hours || 24) * 60 * 60 * 1000
+    );
+  }
+  const dayStart = clockMinutes(policy.workdayStart);
+  const dayEnd = clockMinutes(policy.workdayEnd);
+  if (dayStart === null || dayEnd === null || dayEnd <= dayStart) {
+    return new Date(
+      baseNow.getTime() + Number(hours || 24) * 60 * 60 * 1000
+    );
+  }
+  const workingDays = new Set(policy.workingDays.map(Number));
+  const confirmedHolidayYear = Number(
+    state.timeSettings?.holidayCalendarConfirmedAt
+      ? state.timeSettings?.holidayCalendarYear || 0
+      : 0
+  );
+  const holidayDates = new Set(state.timeHolidays
+    .filter(holiday => (
+      !holiday.branchId
+      && Number(holiday.year || String(holiday.date).slice(0, 4))
+        === confirmedHolidayYear
+    ))
+    .map(holiday => holiday.date));
+  let remainingMinutes = Math.max(1, Number(hours || 24) * 60);
+  const now = baseNow;
+  const nowParts = timezoneParts(now, policy.timezone);
+  if (!nowParts) {
+    return new Date(
+      baseNow.getTime() + Number(hours || 24) * 60 * 60 * 1000
+    );
+  }
+  let cursorDate = [
+    nowParts.year,
+    String(nowParts.month).padStart(2, `0`),
+    String(nowParts.day).padStart(2, `0`)
+  ].join(`-`);
+  let cursorMinutes = nowParts.hour * 60 + nowParts.minute;
+  let guard = 0;
+
+  while (remainingMinutes > 0 && guard < 740) {
+    guard += 1;
+    const civilDate = new Date(`${cursorDate}T00:00:00Z`);
+    const dayIsOpen = workingDays.has(civilDate.getUTCDay())
+      && !holidayDates.has(cursorDate);
+    if (!dayIsOpen || cursorMinutes >= dayEnd) {
+      cursorDate = addScheduleDays(cursorDate, 1);
+      cursorMinutes = dayStart;
+      continue;
+    }
+    if (cursorMinutes < dayStart) cursorMinutes = dayStart;
+    const availableMinutes = dayEnd - cursorMinutes;
+    if (remainingMinutes <= availableMinutes) {
+      cursorMinutes += remainingMinutes;
+      remainingMinutes = 0;
+      break;
+    }
+    remainingMinutes -= Math.max(availableMinutes, 0);
+    cursorDate = addScheduleDays(cursorDate, 1);
+    cursorMinutes = dayStart;
+  }
+  return zonedDateToUtc(
+    cursorDate,
+    clockValue(cursorMinutes),
+    policy.timezone
+  ) || new Date(
+    baseNow.getTime() + Number(hours || 24) * 60 * 60 * 1000
+  );
+};
+
+const dueTimestamp = hours => Timestamp.fromDate(businessDueDate(hours));
 
 const stepForResolver = (workflow, resolver, fallbackIndex = 0) => {
   const steps = Array.isArray(workflow?.steps) ? workflow.steps : [];
@@ -971,6 +1260,51 @@ const validatePayload = (requestType, payload) => {
     throw new Error(`expiry-before-issue`);
   }
   return payload;
+};
+
+const validateStage11SchedulePayload = async (requestType, payload) => {
+  if (![ `shift_change`, `shift_swap` ].includes(requestType.code)) return;
+  const assignmentSnapshot = await getDoc(
+    companyDoc(`shiftAssignments`, payload.assignmentId)
+  );
+  if (!assignmentSnapshot.exists()) throw new Error(`shift-assignment-missing`);
+  const assignment = assignmentSnapshot.data();
+  if (
+    assignment.status !== `published`
+    || assignment.employeeAuthUid !== state.user.uid
+    || assignment.employeeId !== state.ownEmployee?.id
+    || assignment.workDate !== payload.workDate
+  ) {
+    throw new Error(`shift-assignment-invalid`);
+  }
+  if (requestType.code === `shift_change`) {
+    const templateSnapshot = await getDoc(
+      companyDoc(`shiftTemplates`, payload.requestedShiftTemplateId)
+    );
+    if (
+      !templateSnapshot.exists()
+      || templateSnapshot.data().status !== `active`
+      || payload.requestedShiftTemplateId === assignment.templateId
+    ) {
+      throw new Error(`requested-shift-invalid`);
+    }
+    return;
+  }
+  const colleagueSnapshot = await getDoc(
+    companyDoc(`shiftAssignments`, payload.colleagueAssignmentId)
+  );
+  if (!colleagueSnapshot.exists()) throw new Error(`colleague-shift-missing`);
+  const colleague = colleagueSnapshot.data();
+  if (
+    colleague.status !== `published`
+    || colleague.id === assignment.id
+    || colleague.employeeId !== payload.colleagueEmployeeCode
+    || colleague.employeeId === assignment.employeeId
+    || colleague.workDate !== assignment.workDate
+    || colleague.managerEmployeeId !== assignment.managerEmployeeId
+  ) {
+    throw new Error(`colleague-shift-invalid`);
+  }
 };
 
 const requestNumberFor = (typeCode, year, sequence) => (
@@ -1161,6 +1495,7 @@ const createRequest = async ({
     requestType,
     normalizePayload(requestType, values)
   );
+  await validateStage11SchedulePayload(requestType, payload);
   const route = submit
     ? resolveRoute(requestType, state.ownEmployee, workflow, state.user.uid)
     : null;
@@ -1783,6 +2118,237 @@ const managerCapability = (managerId, employees) => employees.some(employee => (
   && employeeIsActive(employee)
 ));
 
+const stage11ScheduleConflicts = (record, originals, replacements, published) => {
+  const policy = state.timePolicy;
+  if (!policy) throw new Error(`time-policy-required`);
+  const originalIds = new Set(originals.map(item => item.id));
+  const candidateSchedule = [
+    ...published.filter(item => (
+      item.status === `published`
+      && !originalIds.has(item.id)
+    )),
+    ...replacements
+  ];
+  const conflicts = [];
+
+  replacements.forEach(replacement => {
+    const holiday = state.timeHolidays.find(item => (
+      item.status === `active`
+      && item.date === replacement.workDate
+      && (!item.branchId || item.branchId === replacement.branchId)
+    ));
+    if (holiday) {
+      conflicts.push({
+        code: `holiday`,
+        severity: policy.holidayWorkMode,
+        employeeId: replacement.employeeId
+      });
+    }
+    if (Number(replacement.totalMinutes || 0) > Number(policy.maxDailyMinutes || 0)) {
+      conflicts.push({
+        code: `daily_limit`,
+        severity: `block`,
+        employeeId: replacement.employeeId
+      });
+    }
+
+    const employeeSchedule = candidateSchedule
+      .filter(item => item.employeeId === replacement.employeeId)
+      .sort((left, right) => (
+        left.workDate.localeCompare(right.workDate)
+        || String(left.id).localeCompare(String(right.id))
+      ));
+    const index = employeeSchedule.findIndex(item => item.id === replacement.id);
+    const previous = index > 0 ? employeeSchedule[index - 1] : null;
+    const next = index >= 0 && index < employeeSchedule.length - 1
+      ? employeeSchedule[index + 1]
+      : null;
+    const bounds = scheduleAssignmentBounds(replacement);
+    const previousEnd = scheduleAssignmentBounds(previous).end;
+    const nextStart = scheduleAssignmentBounds(next).start;
+    if (
+      previousEnd
+      && bounds.start
+      && (bounds.start - previousEnd) / 60000
+        < Number(policy.minRestMinutes || 0)
+    ) {
+      conflicts.push({
+        code: `minimum_rest`,
+        severity: policy.conflictMode,
+        employeeId: replacement.employeeId
+      });
+    }
+    if (
+      nextStart
+      && bounds.end
+      && (nextStart - bounds.end) / 60000
+        < Number(policy.minRestMinutes || 0)
+    ) {
+      conflicts.push({
+        code: `minimum_rest`,
+        severity: policy.conflictMode,
+        employeeId: replacement.employeeId
+      });
+    }
+
+    const weekStart = scheduleWeekStart(replacement.workDate);
+    const weekEnd = addScheduleDays(weekStart, 6);
+    const weeklyMinutes = employeeSchedule
+      .filter(item => (
+        item.workDate >= weekStart
+        && item.workDate <= weekEnd
+      ))
+      .reduce((total, item) => (
+        total + Number(item.totalMinutes || 0)
+      ), 0);
+    if (weeklyMinutes > Number(policy.maxWeeklyMinutes || 0)) {
+      conflicts.push({
+        code: `weekly_limit`,
+        severity: `block`,
+        employeeId: replacement.employeeId
+      });
+    }
+  });
+
+  return conflicts.filter((conflict, index, all) => (
+    all.findIndex(candidate => (
+      candidate.code === conflict.code
+      && candidate.employeeId === conflict.employeeId
+    )) === index
+  ));
+};
+
+const prepareStage11Fulfillment = async (requestId, fulfillmentNote) => {
+  const requestSnapshot = await getDoc(companyDoc(`requests`, requestId));
+  if (!requestSnapshot.exists()) throw new Error(`request-missing`);
+  const record = requestSnapshot.data();
+  if (![ `shift_change`, `shift_swap` ].includes(record.typeCode)) return null;
+  if (!state.timePolicy) throw new Error(`time-policy-required`);
+
+  const originalReference = companyDoc(
+    `shiftAssignments`,
+    record.payload.assignmentId
+  );
+  const originalSnapshot = await getDoc(originalReference);
+  if (!originalSnapshot.exists()) throw new Error(`shift-assignment-missing`);
+  const original = { id: originalSnapshot.id, ...originalSnapshot.data() };
+  if (
+    original.status !== `published`
+    || original.employeeId !== record.subjectEmployeeId
+    || original.employeeAuthUid !== record.requesterUid
+    || original.workDate !== record.payload.workDate
+  ) {
+    throw new Error(`shift-assignment-invalid`);
+  }
+
+  const originals = [original];
+  const replacements = [];
+  if (record.typeCode === `shift_change`) {
+    const templateSnapshot = await getDoc(companyDoc(
+      `shiftTemplates`,
+      record.payload.requestedShiftTemplateId
+    ));
+    if (
+      !templateSnapshot.exists()
+      || templateSnapshot.data().status !== `active`
+      || templateSnapshot.id === original.templateId
+    ) {
+      throw new Error(`requested-shift-invalid`);
+    }
+    const template = { id: templateSnapshot.id, ...templateSnapshot.data() };
+    replacements.push({
+      ...original,
+      id: scheduleRequestAssignmentId(record.id, original.employeeId),
+      templateId: template.id,
+      templateKind: template.kind,
+      segments: scheduleSegmentsFromTemplate(
+        original.workDate,
+        template,
+        original.locationId
+      ),
+      totalMinutes: Number(template.totalMinutes || 0)
+    });
+  } else {
+    const colleagueSnapshot = await getDoc(companyDoc(
+      `shiftAssignments`,
+      record.payload.colleagueAssignmentId
+    ));
+    if (!colleagueSnapshot.exists()) throw new Error(`colleague-shift-missing`);
+    const colleague = {
+      id: colleagueSnapshot.id,
+      ...colleagueSnapshot.data()
+    };
+    if (
+      colleague.status !== `published`
+      || colleague.id === original.id
+      || colleague.employeeId !== record.payload.colleagueEmployeeCode
+      || colleague.employeeId === original.employeeId
+      || colleague.workDate !== original.workDate
+      || colleague.managerEmployeeId !== original.managerEmployeeId
+    ) {
+      throw new Error(`colleague-shift-invalid`);
+    }
+    originals.push(colleague);
+    replacements.push(
+      {
+        ...original,
+        id: scheduleRequestAssignmentId(record.id, original.employeeId),
+        locationId: colleague.locationId,
+        templateId: colleague.templateId,
+        templateKind: colleague.templateKind,
+        segments: colleague.segments,
+        totalMinutes: colleague.totalMinutes
+      },
+      {
+        ...colleague,
+        id: scheduleRequestAssignmentId(record.id, colleague.employeeId),
+        locationId: original.locationId,
+        templateId: original.templateId,
+        templateKind: original.templateKind,
+        segments: original.segments,
+        totalMinutes: original.totalMinutes
+      }
+    );
+  }
+
+  const weekStart = scheduleWeekStart(original.workDate);
+  const rangeStart = addScheduleDays(weekStart, -1);
+  const rangeEnd = addScheduleDays(weekStart, 7);
+  const scheduleSnapshot = await getDocs(query(
+    companyCollection(`shiftAssignments`),
+    where(`workDate`, `>=`, rangeStart),
+    where(`workDate`, `<=`, rangeEnd),
+    orderBy(`workDate`),
+    limit(500)
+  ));
+  const employeeIds = new Set(originals.map(item => item.employeeId));
+  const published = snapshotRows(scheduleSnapshot).filter(item => (
+    employeeIds.has(item.employeeId)
+    && item.status === `published`
+  ));
+  const conflicts = stage11ScheduleConflicts(
+    record,
+    originals,
+    replacements,
+    published
+  );
+  if (conflicts.some(conflict => conflict.severity === `block`)) {
+    const error = new Error(`schedule-conflict-blocked`);
+    error.conflicts = conflicts;
+    throw error;
+  }
+  const warnings = conflicts.filter(conflict => conflict.severity === `warn`);
+  if (warnings.length && String(fulfillmentNote || ``).trim().length < 8) {
+    const error = new Error(`schedule-warning-override-required`);
+    error.conflicts = conflicts;
+    throw error;
+  }
+  return {
+    conflictResult: warnings.length ? `override` : `passed`,
+    conflictReason: warnings.length ? String(fulfillmentNote || ``).trim() : ``
+  };
+};
+
 const fulfillRequest = async (requestId, { note = ``, reference = `` } = {}) => {
   if (!isAdmin()) throw new Error(`permission-denied`);
   const normalizedNote = String(note || ``).trim();
@@ -1796,6 +2362,10 @@ const fulfillRequest = async (requestId, { note = ``, reference = `` } = {}) => 
   ));
   const selectedTaskIndex = pendingTasks.findIndex(item => item.id === task.id);
   const taskReference = taskReferences[selectedTaskIndex];
+  const stage11Plan = await prepareStage11Fulfillment(
+    requestId,
+    normalizedNote
+  );
 
   await runTransaction(db, async transaction => {
     const [requestSnapshot, ...taskSnapshots] = await Promise.all([
@@ -1812,7 +2382,9 @@ const fulfillRequest = async (requestId, { note = ``, reference = `` } = {}) => 
         `contact_update`,
         `sensitive_data_update`,
         `document_renewal`,
-        `team_movement`
+        `team_movement`,
+        `shift_change`,
+        `shift_swap`
       ].includes(record.typeCode)
       && !normalizedNote
       && !normalizedReference
@@ -1860,6 +2432,223 @@ const fulfillRequest = async (requestId, { note = ``, reference = `` } = {}) => 
       previousDocumentSnapshot = await transaction.get(
         companyDoc(`employeeDocuments`, record.payload.previousDocumentId)
       );
+    }
+
+    let shiftContext = null;
+    if ([`shift_change`, `shift_swap`].includes(record.typeCode)) {
+      if (!stage11Plan || !state.timePolicy) {
+        throw new Error(`time-policy-required`);
+      }
+      const originalReference = companyDoc(
+        `shiftAssignments`,
+        record.payload.assignmentId
+      );
+      const originalLockReference = companyDoc(
+        `scheduleLocks`,
+        `${record.subjectEmployeeId}__${record.payload.workDate}`
+      );
+      const originalReplacementId = scheduleRequestAssignmentId(
+        record.id,
+        record.subjectEmployeeId
+      );
+      const originalReplacementReference = companyDoc(
+        `shiftAssignments`,
+        originalReplacementId
+      );
+      const originalTemplateReference = companyDoc(
+        `shiftTemplates`,
+        record.typeCode === `shift_change`
+          ? record.payload.requestedShiftTemplateId
+          : `__unused__`
+      );
+      const scheduleReads = [
+        originalReference,
+        originalLockReference,
+        originalReplacementReference
+      ];
+      if (record.typeCode === `shift_change`) {
+        scheduleReads.push(originalTemplateReference);
+      }
+
+      let colleagueReference = null;
+      let colleagueLockReference = null;
+      let colleagueReplacementReference = null;
+      if (record.typeCode === `shift_swap`) {
+        colleagueReference = companyDoc(
+          `shiftAssignments`,
+          record.payload.colleagueAssignmentId
+        );
+        colleagueLockReference = companyDoc(
+          `scheduleLocks`,
+          `${record.payload.colleagueEmployeeCode}__${record.payload.workDate}`
+        );
+        colleagueReplacementReference = companyDoc(
+          `shiftAssignments`,
+          scheduleRequestAssignmentId(
+            record.id,
+            record.payload.colleagueEmployeeCode
+          )
+        );
+        scheduleReads.push(
+          colleagueReference,
+          colleagueLockReference,
+          colleagueReplacementReference
+        );
+      }
+      const scheduleSnapshots = await Promise.all(
+        scheduleReads.map(reference => transaction.get(reference))
+      );
+      const [
+        originalSnapshot,
+        originalLockSnapshot,
+        originalReplacementSnapshot
+      ] = scheduleSnapshots;
+      if (
+        !originalSnapshot.exists()
+        || originalSnapshot.data().status !== `published`
+        || originalSnapshot.data().employeeId !== record.subjectEmployeeId
+        || originalSnapshot.data().employeeAuthUid !== record.requesterUid
+        || originalSnapshot.data().workDate !== record.payload.workDate
+      ) {
+        throw new Error(`shift-assignment-invalid`);
+      }
+      if (
+        !originalLockSnapshot.exists()
+        || originalLockSnapshot.data().currentAssignmentId
+          !== originalSnapshot.id
+        || Number(originalLockSnapshot.data().version || 0)
+          !== Number(originalSnapshot.data().version || 0)
+        || originalReplacementSnapshot.exists()
+      ) {
+        throw new Error(`schedule-changed`);
+      }
+
+      const original = {
+        id: originalSnapshot.id,
+        ...originalSnapshot.data()
+      };
+      const baseContext = {
+        originals: [original],
+        originalReferences: [originalReference],
+        lockReferences: [originalLockReference],
+        lockSnapshots: [originalLockSnapshot],
+        replacementReferences: [originalReplacementReference],
+        replacements: []
+      };
+
+      if (record.typeCode === `shift_change`) {
+        const templateSnapshot = scheduleSnapshots[3];
+        if (
+          !templateSnapshot?.exists()
+          || templateSnapshot.data().status !== `active`
+          || templateSnapshot.id === original.templateId
+        ) {
+          throw new Error(`requested-shift-invalid`);
+        }
+        const template = {
+          id: templateSnapshot.id,
+          ...templateSnapshot.data()
+        };
+        baseContext.replacements.push({
+          ...original,
+          id: originalReplacementId,
+          rosterId: `REQUEST-${record.id}`,
+          templateId: template.id,
+          templateKind: template.kind,
+          flexWindowMinutes: Number(template.flexWindowMinutes || 0),
+          segments: scheduleSegmentsFromTemplate(
+            original.workDate,
+            template,
+            original.locationId
+          ),
+          totalMinutes: Number(template.totalMinutes || 0)
+        });
+      } else {
+        const colleagueSnapshot = scheduleSnapshots[3];
+        const colleagueLockSnapshot = scheduleSnapshots[4];
+        const colleagueReplacementSnapshot = scheduleSnapshots[5];
+        if (
+          !colleagueSnapshot?.exists()
+          || colleagueSnapshot.data().status !== `published`
+          || colleagueSnapshot.id === original.id
+          || colleagueSnapshot.data().employeeId
+            !== record.payload.colleagueEmployeeCode
+          || colleagueSnapshot.data().employeeId === original.employeeId
+          || colleagueSnapshot.data().workDate !== original.workDate
+          || colleagueSnapshot.data().managerEmployeeId
+            !== original.managerEmployeeId
+        ) {
+          throw new Error(`colleague-shift-invalid`);
+        }
+        const [originalTemplateSnapshot, colleagueTemplateSnapshot] = await Promise.all([
+          transaction.get(companyDoc(
+            `shiftTemplates`,
+            original.templateId
+          )),
+          transaction.get(companyDoc(
+            `shiftTemplates`,
+            colleagueSnapshot.data().templateId
+          ))
+        ]);
+        if (
+          !originalTemplateSnapshot.exists()
+          || originalTemplateSnapshot.data().status !== `active`
+          || !colleagueTemplateSnapshot.exists()
+          || colleagueTemplateSnapshot.data().status !== `active`
+        ) {
+          throw new Error(`colleague-shift-invalid`);
+        }
+        if (
+          !colleagueLockSnapshot?.exists()
+          || colleagueLockSnapshot.data().currentAssignmentId
+            !== colleagueSnapshot.id
+          || Number(colleagueLockSnapshot.data().version || 0)
+            !== Number(colleagueSnapshot.data().version || 0)
+          || colleagueReplacementSnapshot?.exists()
+        ) {
+          throw new Error(`schedule-changed`);
+        }
+        const colleague = {
+          id: colleagueSnapshot.id,
+          ...colleagueSnapshot.data()
+        };
+        baseContext.originals.push(colleague);
+        baseContext.originalReferences.push(colleagueReference);
+        baseContext.lockReferences.push(colleagueLockReference);
+        baseContext.lockSnapshots.push(colleagueLockSnapshot);
+        baseContext.replacementReferences.push(
+          colleagueReplacementReference
+        );
+        baseContext.replacements.push(
+          {
+            ...original,
+            id: originalReplacementId,
+            rosterId: `REQUEST-${record.id}`,
+            locationId: colleague.locationId,
+            templateId: colleague.templateId,
+            templateKind: colleague.templateKind,
+            flexWindowMinutes: Number(
+              colleague.flexWindowMinutes || 0
+            ),
+            segments: colleague.segments,
+            totalMinutes: colleague.totalMinutes
+          },
+          {
+            ...colleague,
+            id: colleagueReplacementReference.id,
+            rosterId: `REQUEST-${record.id}`,
+            locationId: original.locationId,
+            templateId: original.templateId,
+            templateKind: original.templateKind,
+            flexWindowMinutes: Number(
+              original.flexWindowMinutes || 0
+            ),
+            segments: original.segments,
+            totalMinutes: original.totalMinutes
+          }
+        );
+      }
+      shiftContext = baseContext;
     }
 
     let fulfillmentRef = {
@@ -2050,6 +2839,73 @@ const fulfillRequest = async (requestId, { note = ``, reference = `` } = {}) => 
         updatedAt: serverTimestamp()
       });
       fulfillmentRef = { kind: `employee_movement`, id: movement.id, requestId: record.id };
+    }
+
+    if (shiftContext) {
+      const replacementIds = [];
+      shiftContext.replacements.forEach((replacement, index) => {
+        const original = shiftContext.originals[index];
+        const originalReference = shiftContext.originalReferences[index];
+        const lockReference = shiftContext.lockReferences[index];
+        const lockSnapshot = shiftContext.lockSnapshots[index];
+        const replacementReference = shiftContext.replacementReferences[index];
+        const nextVersion = Number(lockSnapshot.data().version || 0) + 1;
+        const replacementRecord = {
+          id: replacementReference.id,
+          companyId: state.companyId,
+          rosterId: `REQUEST-${record.id}`,
+          rosterRevision: 0,
+          employeeId: original.employeeId,
+          employeeAuthUid: original.employeeAuthUid,
+          managerEmployeeId: original.managerEmployeeId,
+          branchId: original.branchId,
+          locationId: replacement.locationId,
+          workDate: original.workDate,
+          templateId: replacement.templateId,
+          templateKind: replacement.templateKind,
+          flexWindowMinutes: Number(
+            replacement.flexWindowMinutes || 0
+          ),
+          segments: replacement.segments,
+          totalMinutes: Number(replacement.totalMinutes || 0),
+          status: `published`,
+          version: nextVersion,
+          previousAssignmentId: original.id,
+          supersededBy: ``,
+          sourceRequestId: record.id,
+          conflictCheck: {
+            policyId: state.timePolicy.id,
+            result: stage11Plan.conflictResult,
+            reason: stage11Plan.conflictReason
+          },
+          createdAt: serverTimestamp(),
+          createdBy: state.user.uid,
+          publishedAt: serverTimestamp(),
+          publishedBy: state.user.uid,
+          updatedAt: serverTimestamp(),
+          updatedBy: state.user.uid
+        };
+        transaction.set(replacementReference, replacementRecord);
+        transaction.update(originalReference, {
+          status: `superseded`,
+          supersededBy: replacementReference.id,
+          updatedAt: serverTimestamp(),
+          updatedBy: state.user.uid
+        });
+        transaction.update(lockReference, {
+          currentAssignmentId: replacementReference.id,
+          version: nextVersion,
+          updatedAt: serverTimestamp(),
+          updatedBy: state.user.uid
+        });
+        replacementIds.push(replacementReference.id);
+      });
+      fulfillmentRef = {
+        kind: record.typeCode,
+        id: replacementIds[0],
+        colleagueId: replacementIds[1] || ``,
+        requestId: record.id
+      };
     }
 
     const eventId = crypto.randomUUID();
@@ -2734,6 +3590,7 @@ export {
   addComment,
   adminRoles,
   auth,
+  businessDueDate,
   cancelDelegation,
   cancelRequest,
   createDelegation,

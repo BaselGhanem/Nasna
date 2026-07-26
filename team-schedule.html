@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#099999">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="NASNA">
+  <title>Team Schedule | NASNA</title>
+  <link rel="icon" href="assets/brand/nasna-mark.svg" type="image/svg+xml">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Almarai:wght@400;700;800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="workflow.css?v=20260727.1">
+  <link rel="stylesheet" href="time.css?v=20260727.1">
+</head>
+<body class="is-checking-auth" data-time-page="manager">
+  <div class="auth-loader" id="authLoader" role="status" aria-live="polite">
+    <img src="assets/brand/nasna-mark.svg" width="56" height="56" alt="">
+    <span data-i18n="checkingManagerAccess">Checking your team scheduling access…</span>
+  </div>
+
+  <div class="workflow-app" id="timeApp" hidden>
+    <header class="topbar">
+      <a class="brand-link" href="dashboard.html?v=20260727.1" aria-label="NASNA dashboard">
+        <img src="assets/brand/nasna-mark.svg" width="42" height="42" alt="">
+        <span data-i18n="brandName">NASNA</span>
+      </a>
+      <nav class="topbar-actions" aria-label="Workspace navigation">
+        <a class="topbar-link" href="dashboard.html?v=20260727.1">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11 12 4l8 7v9h-6v-6h-4v6H4z"/></svg>
+          <span data-i18n="dashboard">Dashboard</span>
+        </a>
+        <a class="topbar-link" href="schedule.html?v=20260727.1">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3v4M17 3v4M4 9h16M5 5h14v16H5z"/><path d="M8 13h3m2 0h3"/></svg>
+          <span data-i18n="mySchedule">My schedule</span>
+        </a>
+        <a class="topbar-link is-current" href="team-schedule.html?v=20260727.1">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="8" cy="8" r="3"/><circle cx="17" cy="9" r="2.5"/><path d="M3 20v-2a5 5 0 0 1 10 0v2M14 20v-1.5a4 4 0 0 1 7-2.6"/></svg>
+          <span data-i18n="teamSchedule">Team schedule</span>
+        </a>
+        <a class="topbar-link" href="approvals.html?v=20260727.1">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16v16H4zM8 9h8m-8 4h5m-5 4h7"/><path d="m15 13 1.5 1.5L20 11"/></svg>
+          <span data-i18n="approvalInbox">Approval inbox</span>
+        </a>
+        <a class="topbar-link" id="timeAdminNav" href="time-admin.html?v=20260727.1" hidden>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 7v5l3 2M4 4l2 2M20 4l-2 2"/></svg>
+          <span data-i18n="timeAdmin">Time admin</span>
+        </a>
+        <button class="language-button" id="languageButton" type="button">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18"/></svg>
+          <span id="languageLabel">العربية</span>
+        </button>
+        <button class="signout-button" id="signOutButton" type="button">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 5H5v14h5M14 8l4 4-4 4m4-4H9"/></svg>
+          <span data-i18n="signOut">Sign out</span>
+        </button>
+      </nav>
+    </header>
+
+    <main class="page-shell">
+      <section class="page-heading">
+        <div>
+          <p class="eyebrow" data-i18n="managerWorkspace">Manager workspace</p>
+          <h1 data-i18n="teamScheduleTitle">Plan and publish your team roster</h1>
+          <p data-i18n="teamScheduleCopy">Your manager screen is separate from your employee schedule. Plan direct reports, validate conflicts, then publish an official version.</p>
+        </div>
+        <div class="signed-in-card">
+          <span class="avatar" id="signedInAvatar">M</span>
+          <span>
+            <small data-i18n="planningAs">Planning as</small>
+            <strong id="signedInEmail"></strong>
+          </span>
+        </div>
+      </section>
+
+      <section class="boundary-banner time-banner">
+        <div>
+          <span class="boundary-icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 5 6v5c0 4.8 2.9 8.2 7 10 4.1-1.8 7-5.2 7-10V6l-7-3Z"/><path d="m9.5 12 1.7 1.7 3.5-3.7"/></svg>
+          </span>
+          <span>
+            <strong data-i18n="managerScheduleBoundary">Managers schedule direct reports only</strong>
+            <p data-i18n="managerScheduleBoundaryCopy">You remain an employee. This workspace does not let you create employees, edit HR files, or alter another manager’s team.</p>
+          </span>
+        </div>
+        <span class="boundary-chip" data-i18n="versionedPublishing">Versioned publishing</span>
+      </section>
+
+      <section class="week-toolbar planner-toolbar">
+        <div>
+          <p class="eyebrow" data-i18n="rosterWeek">Roster week</p>
+          <h2 id="weekLabel">—</h2>
+        </div>
+        <div class="planner-scope" id="plannerScope" hidden>
+          <label for="managerScopeFilter" data-i18n="managerScope">Manager scope</label>
+          <select id="managerScopeFilter"></select>
+        </div>
+        <div class="week-actions">
+          <button class="secondary-button" id="previousWeek" type="button" data-i18n="previousWeek">Previous</button>
+          <button class="secondary-button" id="currentWeek" type="button" data-i18n="thisWeek">This week</button>
+          <button class="secondary-button" id="nextWeek" type="button" data-i18n="nextWeek">Next</button>
+        </div>
+      </section>
+
+      <section class="planner-status" id="plannerStatus">
+        <span class="status-badge is-draft" id="rosterStatus" data-i18n="unsavedDraft">Unsaved draft</span>
+        <span id="rosterMeta" data-i18n="draftCopy">Save a draft before publishing.</span>
+        <div class="planner-actions">
+          <button class="secondary-button" id="saveRosterButton" type="button" data-i18n="saveDraft">Save draft</button>
+          <button class="primary-button" id="publishRosterButton" type="button" data-i18n="publishRoster" disabled>Publish roster</button>
+        </div>
+      </section>
+
+      <section class="panel planner-panel">
+        <header class="panel-header">
+          <div>
+            <p class="eyebrow" data-i18n="weeklyPlanner">Weekly planner</p>
+            <h2 data-i18n="assignShifts">Assign published shift templates</h2>
+            <p data-i18n="assignShiftsCopy">An empty cell is a non-working day. Split templates carry both segments automatically.</p>
+          </div>
+        </header>
+        <div class="planner-grid-wrap">
+          <div class="planner-grid" id="plannerGrid"></div>
+        </div>
+        <div class="empty-state" id="plannerEmpty" hidden>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="8" cy="8" r="3"/><path d="M3 20v-2a5 5 0 0 1 10 0v2"/></svg>
+          <h3 data-i18n="noDirectReports">No employees are available in this scope</h3>
+          <p data-i18n="noDirectReportsCopy">HR must create and assign employees before a roster can be planned.</p>
+        </div>
+      </section>
+
+      <section class="panel conflict-panel">
+        <header class="panel-header">
+          <div>
+            <p class="eyebrow" data-i18n="conflictPolicy">Conflict policy</p>
+            <h2 data-i18n="publishChecks">Checks applied before publishing</h2>
+          </div>
+        </header>
+        <div class="check-grid">
+          <span><b>✓</b><span data-i18n="checkDailyLimit">Daily-hours limit</span></span>
+          <span><b>✓</b><span data-i18n="checkWeeklyLimit">Weekly-hours limit</span></span>
+          <span><b>✓</b><span data-i18n="checkMinimumRest">Minimum rest between shifts</span></span>
+          <span><b>✓</b><span data-i18n="checkHolidays">Published holiday calendar</span></span>
+          <span><b>✓</b><span data-i18n="checkAtomicPublish">Atomic version and daily lock</span></span>
+        </div>
+        <div class="conflict-list" id="conflictList"></div>
+      </section>
+    </main>
+  </div>
+
+  <div class="modal" id="overrideModal" hidden>
+    <article class="modal-card time-modal-card" role="dialog" aria-modal="true" aria-labelledby="overrideTitle">
+      <header class="modal-header">
+        <div>
+          <p class="eyebrow" data-i18n="hrOverride">HR override</p>
+          <h2 id="overrideTitle" data-i18n="overrideWarnings">Document warning override</h2>
+          <p data-i18n="overrideWarningsCopy">Only HR may publish a warning-level conflict, and the reason becomes part of the audit trail.</p>
+        </div>
+        <button class="modal-close" id="closeOverrideModal" type="button" aria-label="Close">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>
+        </button>
+      </header>
+      <form id="overrideForm">
+        <div class="form-field">
+          <label for="overrideReason" data-i18n="overrideReason">Override reason</label>
+          <textarea id="overrideReason" minlength="8" maxlength="500" required></textarea>
+        </div>
+        <p class="form-error" id="overrideError" role="alert"></p>
+        <div class="modal-actions">
+          <button class="secondary-button" id="cancelOverride" type="button" data-i18n="cancel">Cancel</button>
+          <button class="primary-button" type="submit" data-i18n="publishWithOverride">Publish with override</button>
+        </div>
+      </form>
+    </article>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite">
+    <span id="toastMessage"></span>
+  </div>
+  <script type="module" src="time.js?v=20260727.1"></script>
+</body>
+</html>

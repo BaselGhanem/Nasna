@@ -54,6 +54,34 @@ service cloud.firestore {
       return /databases/$(database)/documents/nasna_companies/$(companyId)/employeeDocuments/$(documentId);
     }
 
+    function timeSettingsPath(companyId) {
+      return /databases/$(database)/documents/nasna_companies/$(companyId)/timeSettings/current;
+    }
+
+    function timePolicyPath(companyId, policyId) {
+      return /databases/$(database)/documents/nasna_companies/$(companyId)/timePolicies/$(policyId);
+    }
+
+    function shiftTemplatePath(companyId, templateId) {
+      return /databases/$(database)/documents/nasna_companies/$(companyId)/shiftTemplates/$(templateId);
+    }
+
+    function holidayPath(companyId, holidayId) {
+      return /databases/$(database)/documents/nasna_companies/$(companyId)/holidays/$(holidayId);
+    }
+
+    function rosterPath(companyId, rosterId) {
+      return /databases/$(database)/documents/nasna_companies/$(companyId)/rosters/$(rosterId);
+    }
+
+    function shiftAssignmentPath(companyId, assignmentId) {
+      return /databases/$(database)/documents/nasna_companies/$(companyId)/shiftAssignments/$(assignmentId);
+    }
+
+    function scheduleLockPath(companyId, lockId) {
+      return /databases/$(database)/documents/nasna_companies/$(companyId)/scheduleLocks/$(lockId);
+    }
+
     function requestTypePath(companyId, requestTypeId) {
       return /databases/$(database)/documents/nasna_companies/$(companyId)/requestTypes/$(requestTypeId);
     }
@@ -291,6 +319,52 @@ service cloud.firestore {
           && getAfter(
             employeeMovementPath(companyId, targetId)
           ).data.createdAt == request.time
+        )
+        || (
+          action == 'time_policy.published'
+          && actorCreatedDocument(timePolicyPath(companyId, targetId))
+        )
+        || (
+          action == 'shift_template.created'
+          && actorCreatedDocument(shiftTemplatePath(companyId, targetId))
+        )
+        || (
+          action == 'shift_template.updated'
+          && actorUpdatedDocument(shiftTemplatePath(companyId, targetId))
+        )
+        || (
+          action == 'holiday.created'
+          && actorCreatedDocument(holidayPath(companyId, targetId))
+        )
+        || (
+          action == 'holiday.updated'
+          && actorUpdatedDocument(holidayPath(companyId, targetId))
+        )
+        || (
+          action == 'holiday_calendar.confirmed'
+          && targetId == 'current'
+          && actorUpdatedDocument(timeSettingsPath(companyId))
+        )
+        || (
+          action == 'roster.created'
+          && actorCreatedDocument(rosterPath(companyId, targetId))
+        )
+        || (
+          action == 'roster.updated'
+          && actorUpdatedDocument(rosterPath(companyId, targetId))
+        )
+        || (
+          action == 'roster.published'
+          && actorChangedStatus(rosterPath(companyId, targetId))
+          && getAfter(rosterPath(companyId, targetId)).data.status
+            == 'published'
+        )
+        || (
+          action == 'shift_requests.activated'
+          && targetId == 'current'
+          && actorUpdatedDocument(timeSettingsPath(companyId))
+          && getAfter(timeSettingsPath(companyId)).data.requestServicesEnabled
+            == true
         );
     }
 
@@ -1060,6 +1134,130 @@ service cloud.firestore {
       );
     }
 
+    function validStage11RequestPayload(companyId, requestType) {
+      let payload = request.resource.data.payload;
+      let assignmentId = payload.assignmentId;
+      let isShiftRequest = requestType.code in [
+        'shift_change',
+        'shift_swap'
+      ];
+      return !isShiftRequest
+        || (
+          exists(timeSettingsPath(companyId))
+          && get(
+            timeSettingsPath(companyId)
+          ).data.requestServicesEnabled == true
+          && get(
+            timeSettingsPath(companyId)
+          ).data.requestTypeIds.hasAny([
+            request.resource.data.typeId
+          ])
+          && assignmentId is string
+          && assignmentId.size() > 0
+          && assignmentId.size() <= 180
+          && validIsoDate(payload.workDate)
+          && payload.reason is string
+          && payload.reason.size() > 0
+          && payload.reason.size() <= 2000
+          && exists(
+            shiftAssignmentPath(companyId, assignmentId)
+          )
+          && get(
+            shiftAssignmentPath(companyId, assignmentId)
+          ).data.status == 'published'
+          && get(
+            shiftAssignmentPath(companyId, assignmentId)
+          ).data.employeeAuthUid == request.resource.data.requesterUid
+          && get(
+            shiftAssignmentPath(companyId, assignmentId)
+          ).data.employeeId == request.resource.data.subjectEmployeeId
+          && get(
+            shiftAssignmentPath(companyId, assignmentId)
+          ).data.workDate == payload.workDate
+          && (
+            (
+              requestType.code == 'shift_change'
+              && payload.keys().hasOnly([
+                'assignmentId',
+                'workDate',
+                'requestedShiftTemplateId',
+                'reason'
+              ])
+              && payload.requestedShiftTemplateId is string
+              && exists(
+                shiftTemplatePath(
+                  companyId,
+                  payload.requestedShiftTemplateId
+                )
+              )
+              && get(
+                shiftTemplatePath(
+                  companyId,
+                  payload.requestedShiftTemplateId
+                )
+              ).data.status == 'active'
+              && payload.requestedShiftTemplateId
+                != get(
+                  shiftAssignmentPath(companyId, assignmentId)
+                ).data.templateId
+            )
+            || (
+              requestType.code == 'shift_swap'
+              && payload.keys().hasOnly([
+                'assignmentId',
+                'workDate',
+                'colleagueEmployeeCode',
+                'colleagueAssignmentId',
+                'reason'
+              ])
+              && payload.colleagueEmployeeCode is string
+              && payload.colleagueAssignmentId is string
+              && payload.colleagueAssignmentId != assignmentId
+              && exists(
+                shiftAssignmentPath(
+                  companyId,
+                  payload.colleagueAssignmentId
+                )
+              )
+              && get(
+                shiftAssignmentPath(
+                  companyId,
+                  payload.colleagueAssignmentId
+                )
+              ).data.status == 'published'
+              && get(
+                shiftAssignmentPath(
+                  companyId,
+                  payload.colleagueAssignmentId
+                )
+              ).data.employeeId == payload.colleagueEmployeeCode
+              && get(
+                shiftAssignmentPath(
+                  companyId,
+                  payload.colleagueAssignmentId
+                )
+              ).data.employeeId
+                != request.resource.data.subjectEmployeeId
+              && get(
+                shiftAssignmentPath(
+                  companyId,
+                  payload.colleagueAssignmentId
+                )
+              ).data.workDate == payload.workDate
+              && get(
+                shiftAssignmentPath(
+                  companyId,
+                  payload.colleagueAssignmentId
+                )
+              ).data.managerEmployeeId
+                == get(
+                  shiftAssignmentPath(companyId, assignmentId)
+                ).data.managerEmployeeId
+            )
+          )
+        );
+    }
+
     function validWorkflowRequestCreate(companyId, workflowRequestId) {
       let requestType = get(
         requestTypePath(companyId, request.resource.data.typeId)
@@ -1077,6 +1275,7 @@ service cloud.firestore {
         && requestType.workflowId == request.resource.data.workflowId
         && requestType.confidentiality
           == request.resource.data.confidentiality
+        && validStage11RequestPayload(companyId, requestType)
         && exists(workflowPath(companyId, request.resource.data.workflowId))
         && validRequestSubjectData(
           companyId,
@@ -1129,7 +1328,11 @@ service cloud.firestore {
     }
 
     function validWorkflowRequestUpdate(companyId, workflowRequestId) {
+      let requestType = get(
+        requestTypePath(companyId, request.resource.data.typeId)
+      ).data;
       return request.resource.data.id == resource.data.id
+        && validStage11RequestPayload(companyId, requestType)
         && request.resource.data.companyId == resource.data.companyId
         && request.resource.data.requestNumber == resource.data.requestNumber
         && (
@@ -2172,6 +2375,1056 @@ service cloud.firestore {
         );
     }
 
+    function validIsoDate(value) {
+      return value is string
+        && value.matches(
+          '^[0-9]{4}-(0[1-9]|1[0-2])-([0-2][0-9]|3[0-1])$'
+        );
+    }
+
+    function validClockTime(value) {
+      return value is string
+        && value.matches('^([01][0-9]|2[0-3]):[0-5][0-9]$');
+    }
+
+    function managerControlsEmployee(companyId, employeeId) {
+      return managerActor(companyId)
+        && member(companyId).data.employeeId is string
+        && exists(employeePath(companyId, employeeId))
+        && get(
+          employeePath(companyId, employeeId)
+        ).data.managerEmployeeId == member(companyId).data.employeeId;
+    }
+
+    function canScheduleEmployee(companyId, employeeId) {
+      return admin(companyId)
+        || managerControlsEmployee(companyId, employeeId);
+    }
+
+    function validTimePolicyShape(companyId, policyId) {
+      return request.resource.data.keys().hasAll([
+          'id',
+          'companyId',
+          'version',
+          'timezone',
+          'weekStartsOn',
+          'workingDays',
+          'workdayStart',
+          'workdayEnd',
+          'dailyMinutes',
+          'maxDailyMinutes',
+          'maxWeeklyMinutes',
+          'minRestMinutes',
+          'conflictMode',
+          'holidayWorkMode',
+          'effectiveFrom',
+          'status',
+          'createdAt',
+          'createdBy',
+          'updatedAt',
+          'updatedBy'
+        ])
+        && request.resource.data.keys().hasOnly([
+          'id',
+          'companyId',
+          'version',
+          'timezone',
+          'weekStartsOn',
+          'workingDays',
+          'workdayStart',
+          'workdayEnd',
+          'dailyMinutes',
+          'maxDailyMinutes',
+          'maxWeeklyMinutes',
+          'minRestMinutes',
+          'conflictMode',
+          'holidayWorkMode',
+          'effectiveFrom',
+          'status',
+          'createdAt',
+          'createdBy',
+          'updatedAt',
+          'updatedBy'
+        ])
+        && request.resource.data.id == policyId
+        && request.resource.data.companyId == companyId
+        && request.resource.data.version is int
+        && request.resource.data.version >= 1
+        && request.resource.data.version <= 10000
+        && request.resource.data.timezone is string
+        && request.resource.data.timezone.size() > 0
+        && request.resource.data.timezone.size() <= 80
+        && request.resource.data.weekStartsOn is int
+        && request.resource.data.weekStartsOn >= 0
+        && request.resource.data.weekStartsOn <= 6
+        && request.resource.data.workingDays is list
+        && request.resource.data.workingDays.size() >= 1
+        && request.resource.data.workingDays.size() <= 7
+        && request.resource.data.workingDays.hasOnly([
+          0, 1, 2, 3, 4, 5, 6
+        ])
+        && validClockTime(request.resource.data.workdayStart)
+        && validClockTime(request.resource.data.workdayEnd)
+        && request.resource.data.dailyMinutes is int
+        && request.resource.data.dailyMinutes >= 60
+        && request.resource.data.dailyMinutes <= 1440
+        && request.resource.data.maxDailyMinutes is int
+        && request.resource.data.maxDailyMinutes
+          >= request.resource.data.dailyMinutes
+        && request.resource.data.maxDailyMinutes <= 1440
+        && request.resource.data.maxWeeklyMinutes is int
+        && request.resource.data.maxWeeklyMinutes
+          >= request.resource.data.maxDailyMinutes
+        && request.resource.data.maxWeeklyMinutes <= 10080
+        && request.resource.data.minRestMinutes is int
+        && request.resource.data.minRestMinutes >= 0
+        && request.resource.data.minRestMinutes <= 1440
+        && request.resource.data.conflictMode in ['block', 'warn']
+        && request.resource.data.holidayWorkMode in ['block', 'warn']
+        && validIsoDate(request.resource.data.effectiveFrom)
+        && request.resource.data.status == 'published'
+        && request.resource.data.createdAt is timestamp
+        && request.resource.data.createdBy is string
+        && request.resource.data.updatedAt is timestamp
+        && request.resource.data.updatedBy is string;
+    }
+
+    function validTimeSettingsShape(companyId) {
+      return request.resource.data.keys().hasAll([
+          'id',
+          'companyId',
+          'activePolicyId',
+          'policyVersion',
+          'holidayCalendarYear',
+          'holidayCalendarConfirmedAt',
+          'requestServicesEnabled',
+          'requestTypeIds',
+          'createdAt',
+          'createdBy',
+          'updatedAt',
+          'updatedBy'
+        ])
+        && request.resource.data.keys().hasOnly([
+          'id',
+          'companyId',
+          'activePolicyId',
+          'policyVersion',
+          'holidayCalendarYear',
+          'holidayCalendarConfirmedAt',
+          'requestServicesEnabled',
+          'requestTypeIds',
+          'createdAt',
+          'createdBy',
+          'updatedAt',
+          'updatedBy'
+        ])
+        && request.resource.data.id == 'current'
+        && request.resource.data.companyId == companyId
+        && request.resource.data.activePolicyId is string
+        && request.resource.data.activePolicyId.size() > 0
+        && request.resource.data.activePolicyId.size() <= 100
+        && request.resource.data.policyVersion is int
+        && request.resource.data.policyVersion >= 1
+        && request.resource.data.policyVersion <= 10000
+        && existsAfter(
+          timePolicyPath(
+            companyId,
+            request.resource.data.activePolicyId
+          )
+        )
+        && getAfter(
+          timePolicyPath(
+            companyId,
+            request.resource.data.activePolicyId
+          )
+        ).data.version == request.resource.data.policyVersion
+        && getAfter(
+          timePolicyPath(
+            companyId,
+            request.resource.data.activePolicyId
+          )
+        ).data.status == 'published'
+        && request.resource.data.holidayCalendarYear is int
+        && request.resource.data.holidayCalendarYear >= 0
+        && request.resource.data.holidayCalendarYear <= 2100
+        && (
+          request.resource.data.holidayCalendarConfirmedAt == null
+          || request.resource.data.holidayCalendarConfirmedAt is timestamp
+        )
+        && request.resource.data.requestServicesEnabled is bool
+        && request.resource.data.requestTypeIds is list
+        && request.resource.data.requestTypeIds.size() <= 2
+        && (
+          (
+            request.resource.data.requestServicesEnabled == false
+            && request.resource.data.requestTypeIds.size() == 0
+          )
+          || (
+            request.resource.data.requestServicesEnabled == true
+            && request.resource.data.requestTypeIds.size() == 2
+            && request.resource.data.requestTypeIds[0]
+              != request.resource.data.requestTypeIds[1]
+            && existsAfter(
+              requestTypePath(
+                companyId,
+                request.resource.data.requestTypeIds[0]
+              )
+            )
+            && existsAfter(
+              requestTypePath(
+                companyId,
+                request.resource.data.requestTypeIds[1]
+              )
+            )
+            && getAfter(
+              requestTypePath(
+                companyId,
+                request.resource.data.requestTypeIds[0]
+              )
+            ).data.status == 'published'
+            && getAfter(
+              requestTypePath(
+                companyId,
+                request.resource.data.requestTypeIds[1]
+              )
+            ).data.status == 'published'
+            && (
+              (
+                getAfter(
+                  requestTypePath(
+                    companyId,
+                    request.resource.data.requestTypeIds[0]
+                  )
+                ).data.code == 'shift_change'
+                && getAfter(
+                  requestTypePath(
+                    companyId,
+                    request.resource.data.requestTypeIds[1]
+                  )
+                ).data.code == 'shift_swap'
+              )
+              || (
+                getAfter(
+                  requestTypePath(
+                    companyId,
+                    request.resource.data.requestTypeIds[0]
+                  )
+                ).data.code == 'shift_swap'
+                && getAfter(
+                  requestTypePath(
+                    companyId,
+                    request.resource.data.requestTypeIds[1]
+                  )
+                ).data.code == 'shift_change'
+              )
+            )
+          )
+        )
+        && request.resource.data.createdAt is timestamp
+        && request.resource.data.createdBy is string
+        && request.resource.data.updatedAt is timestamp
+        && request.resource.data.updatedBy is string;
+    }
+
+    function validShiftTemplateSegment(segment) {
+      return segment is map
+        && segment.keys().hasAll([
+          'startTime',
+          'endTime',
+          'breakMinutes'
+        ])
+        && segment.keys().hasOnly([
+          'startTime',
+          'endTime',
+          'breakMinutes'
+        ])
+        && validClockTime(segment.startTime)
+        && validClockTime(segment.endTime)
+        && segment.breakMinutes is int
+        && segment.breakMinutes >= 0
+        && segment.breakMinutes <= 240;
+    }
+
+    function validShiftTemplateShape(companyId, templateId) {
+      return request.resource.data.keys().hasAll([
+          'id',
+          'companyId',
+          'code',
+          'nameEn',
+          'nameAr',
+          'kind',
+          'flexWindowMinutes',
+          'segments',
+          'totalMinutes',
+          'status',
+          'createdAt',
+          'createdBy',
+          'updatedAt',
+          'updatedBy'
+        ])
+        && request.resource.data.keys().hasOnly([
+          'id',
+          'companyId',
+          'code',
+          'nameEn',
+          'nameAr',
+          'kind',
+          'flexWindowMinutes',
+          'segments',
+          'totalMinutes',
+          'status',
+          'createdAt',
+          'createdBy',
+          'updatedAt',
+          'updatedBy'
+        ])
+        && request.resource.data.id == templateId
+        && request.resource.data.companyId == companyId
+        && request.resource.data.code == templateId
+        && request.resource.data.code.matches(
+          '^[A-Z0-9][A-Z0-9-]{1,19}$'
+        )
+        && validStructureName(request.resource.data.nameEn)
+        && validStructureName(request.resource.data.nameAr)
+        && request.resource.data.kind in [
+          'standard',
+          'flexible',
+          'split'
+        ]
+        && request.resource.data.flexWindowMinutes is int
+        && request.resource.data.flexWindowMinutes >= 0
+        && request.resource.data.flexWindowMinutes <= 240
+        && (
+          (
+            request.resource.data.kind == 'flexible'
+            && request.resource.data.flexWindowMinutes >= 1
+          )
+          || (
+            request.resource.data.kind != 'flexible'
+            && request.resource.data.flexWindowMinutes == 0
+          )
+        )
+        && request.resource.data.segments is list
+        && request.resource.data.segments.size() >= 1
+        && request.resource.data.segments.size() <= 2
+        && validShiftTemplateSegment(
+          request.resource.data.segments[0]
+        )
+        && (
+          (
+            request.resource.data.kind == 'split'
+            && request.resource.data.segments.size() == 2
+            && validShiftTemplateSegment(
+              request.resource.data.segments[1]
+            )
+          )
+          || (
+            request.resource.data.kind != 'split'
+            && request.resource.data.segments.size() == 1
+          )
+        )
+        && request.resource.data.totalMinutes is int
+        && request.resource.data.totalMinutes >= 1
+        && request.resource.data.totalMinutes <= 1440
+        && request.resource.data.status in ['active', 'inactive']
+        && request.resource.data.createdAt is timestamp
+        && request.resource.data.createdBy is string
+        && request.resource.data.updatedAt is timestamp
+        && request.resource.data.updatedBy is string;
+    }
+
+    function validHolidayShape(companyId, holidayId) {
+      return request.resource.data.keys().hasAll([
+          'id',
+          'companyId',
+          'date',
+          'year',
+          'nameEn',
+          'nameAr',
+          'branchId',
+          'paid',
+          'status',
+          'createdAt',
+          'createdBy',
+          'updatedAt',
+          'updatedBy'
+        ])
+        && request.resource.data.keys().hasOnly([
+          'id',
+          'companyId',
+          'date',
+          'year',
+          'nameEn',
+          'nameAr',
+          'branchId',
+          'paid',
+          'status',
+          'createdAt',
+          'createdBy',
+          'updatedAt',
+          'updatedBy'
+        ])
+        && request.resource.data.id == holidayId
+        && request.resource.data.companyId == companyId
+        && validIsoDate(request.resource.data.date)
+        && request.resource.data.year is int
+        && request.resource.data.year >= 2020
+        && request.resource.data.year <= 2100
+        && validStructureName(request.resource.data.nameEn)
+        && validStructureName(request.resource.data.nameAr)
+        && request.resource.data.branchId is string
+        && (
+          request.resource.data.branchId == ''
+          || (
+            exists(
+              branchPath(companyId, request.resource.data.branchId)
+            )
+            && get(
+              branchPath(companyId, request.resource.data.branchId)
+            ).data.status == 'active'
+          )
+        )
+        && request.resource.data.paid is bool
+        && request.resource.data.status in ['active', 'inactive']
+        && request.resource.data.createdAt is timestamp
+        && request.resource.data.createdBy is string
+        && request.resource.data.updatedAt is timestamp
+        && request.resource.data.updatedBy is string;
+    }
+
+    function validRosterShape(companyId, rosterId) {
+      return request.resource.data.keys().hasAll([
+          'id',
+          'companyId',
+          'ownerUid',
+          'managerEmployeeId',
+          'scopeKind',
+          'startDate',
+          'endDate',
+          'timezone',
+          'policyId',
+          'status',
+          'revision',
+          'assignmentCount',
+          'draftState',
+          'draftToken',
+          'publishTotal',
+          'publishCompleted',
+          'publishToken',
+          'publishConflictResult',
+          'publishOverrideReason',
+          'lastPublishedAssignmentId',
+          'createdAt',
+          'createdBy',
+          'publishedAt',
+          'publishedBy',
+          'updatedAt',
+          'updatedBy'
+        ])
+        && request.resource.data.keys().hasOnly([
+          'id',
+          'companyId',
+          'ownerUid',
+          'managerEmployeeId',
+          'scopeKind',
+          'startDate',
+          'endDate',
+          'timezone',
+          'policyId',
+          'status',
+          'revision',
+          'assignmentCount',
+          'draftState',
+          'draftToken',
+          'publishTotal',
+          'publishCompleted',
+          'publishToken',
+          'publishConflictResult',
+          'publishOverrideReason',
+          'lastPublishedAssignmentId',
+          'createdAt',
+          'createdBy',
+          'publishedAt',
+          'publishedBy',
+          'updatedAt',
+          'updatedBy'
+        ])
+        && request.resource.data.id == rosterId
+        && request.resource.data.companyId == companyId
+        && request.resource.data.ownerUid is string
+        && exists(
+          memberPath(companyId, request.resource.data.ownerUid)
+        )
+        && request.resource.data.managerEmployeeId is string
+        && (
+          request.resource.data.managerEmployeeId == ''
+          || validStructureCode(
+            request.resource.data.managerEmployeeId
+          )
+        )
+        && request.resource.data.scopeKind in ['manager', 'hr']
+        && validIsoDate(request.resource.data.startDate)
+        && validIsoDate(request.resource.data.endDate)
+        && request.resource.data.endDate >= request.resource.data.startDate
+        && request.resource.data.timezone is string
+        && request.resource.data.timezone.size() > 0
+        && request.resource.data.timezone.size() <= 80
+        && request.resource.data.policyId is string
+        && exists(
+          timePolicyPath(companyId, request.resource.data.policyId)
+        )
+        && get(
+          timePolicyPath(companyId, request.resource.data.policyId)
+        ).data.status == 'published'
+        && request.resource.data.timezone == get(
+          timePolicyPath(companyId, request.resource.data.policyId)
+        ).data.timezone
+        && request.resource.data.status in [
+          'draft',
+          'publishing',
+          'published'
+        ]
+        && request.resource.data.revision is int
+        && request.resource.data.revision >= 1
+        && request.resource.data.assignmentCount is int
+        && request.resource.data.assignmentCount >= 1
+        && request.resource.data.assignmentCount <= 140
+        && request.resource.data.draftState in ['saving', 'ready']
+        && request.resource.data.draftToken is string
+        && request.resource.data.draftToken.size() >= 8
+        && request.resource.data.draftToken.size() <= 80
+        && request.resource.data.publishTotal is int
+        && request.resource.data.publishTotal
+          == request.resource.data.assignmentCount
+        && request.resource.data.publishCompleted is int
+        && request.resource.data.publishCompleted >= 0
+        && request.resource.data.publishCompleted
+          <= request.resource.data.publishTotal
+        && request.resource.data.publishToken is string
+        && request.resource.data.publishToken.size() <= 80
+        && request.resource.data.publishConflictResult in [
+          '',
+          'passed',
+          'override'
+        ]
+        && request.resource.data.publishOverrideReason is string
+        && request.resource.data.publishOverrideReason.size() <= 500
+        && (
+          request.resource.data.publishConflictResult != 'override'
+          || request.resource.data.publishOverrideReason.size() >= 8
+        )
+        && request.resource.data.lastPublishedAssignmentId is string
+        && request.resource.data.lastPublishedAssignmentId.size() <= 180
+        && request.resource.data.createdAt is timestamp
+        && request.resource.data.createdBy is string
+        && (
+          request.resource.data.publishedAt == null
+          || request.resource.data.publishedAt is timestamp
+        )
+        && request.resource.data.publishedBy is string
+        && request.resource.data.updatedAt is timestamp
+        && request.resource.data.updatedBy is string;
+    }
+
+    function validPublishedShiftSegment(
+      companyId,
+      segment,
+      templateId,
+      requireActiveLocation
+    ) {
+      return segment is map
+        && segment.keys().hasAll([
+          'shiftTemplateId',
+          'startAt',
+          'endAt',
+          'breakMinutes',
+          'locationId'
+        ])
+        && segment.keys().hasOnly([
+          'shiftTemplateId',
+          'startAt',
+          'endAt',
+          'breakMinutes',
+          'locationId'
+        ])
+        && segment.shiftTemplateId == templateId
+        && segment.startAt is timestamp
+        && segment.endAt is timestamp
+        && segment.endAt > segment.startAt
+        && segment.breakMinutes is int
+        && segment.breakMinutes >= 0
+        && segment.breakMinutes <= 240
+        && segment.locationId is string
+        && exists(locationPath(companyId, segment.locationId))
+        && (
+          requireActiveLocation == false
+          || get(
+            locationPath(companyId, segment.locationId)
+          ).data.status == 'active'
+        );
+    }
+
+    function validConflictCheck(conflictCheck) {
+      return conflictCheck is map
+        && conflictCheck.keys().hasAll([
+          'policyId',
+          'result',
+          'reason'
+        ])
+        && conflictCheck.keys().hasOnly([
+          'policyId',
+          'result',
+          'reason'
+        ])
+        && conflictCheck.policyId is string
+        && conflictCheck.result in [
+          'pending',
+          'passed',
+          'override'
+        ]
+        && conflictCheck.reason is string
+        && conflictCheck.reason.size() <= 500;
+    }
+
+    function assignmentMatchesActiveTemplate(companyId, data) {
+      let template = get(
+        shiftTemplatePath(companyId, data.templateId)
+      ).data;
+      return template.status == 'active'
+        && get(locationPath(companyId, data.locationId)).data.status
+          == 'active'
+        && data.templateKind == template.kind
+        && data.flexWindowMinutes == template.flexWindowMinutes
+        && data.segments.size() == template.segments.size()
+        && data.totalMinutes == template.totalMinutes
+        && data.segments[0].breakMinutes
+          == template.segments[0].breakMinutes
+        && (
+          data.segments.size() == 1
+          || data.segments[1].breakMinutes
+            == template.segments[1].breakMinutes
+        );
+    }
+
+    function validShiftAssignmentShape(companyId, assignmentId) {
+      return request.resource.data.keys().hasAll([
+          'id',
+          'companyId',
+          'rosterId',
+          'rosterRevision',
+          'employeeId',
+          'employeeAuthUid',
+          'managerEmployeeId',
+          'branchId',
+          'locationId',
+          'workDate',
+          'templateId',
+          'templateKind',
+          'flexWindowMinutes',
+          'segments',
+          'totalMinutes',
+          'status',
+          'version',
+          'previousAssignmentId',
+          'supersededBy',
+          'sourceRequestId',
+          'conflictCheck',
+          'createdAt',
+          'createdBy',
+          'publishedAt',
+          'publishedBy',
+          'updatedAt',
+          'updatedBy'
+        ])
+        && request.resource.data.keys().hasOnly([
+          'id',
+          'companyId',
+          'rosterId',
+          'rosterRevision',
+          'employeeId',
+          'employeeAuthUid',
+          'managerEmployeeId',
+          'branchId',
+          'locationId',
+          'workDate',
+          'templateId',
+          'templateKind',
+          'flexWindowMinutes',
+          'segments',
+          'totalMinutes',
+          'status',
+          'version',
+          'previousAssignmentId',
+          'supersededBy',
+          'sourceRequestId',
+          'conflictCheck',
+          'createdAt',
+          'createdBy',
+          'publishedAt',
+          'publishedBy',
+          'updatedAt',
+          'updatedBy'
+        ])
+        && request.resource.data.id == assignmentId
+        && request.resource.data.companyId == companyId
+        && request.resource.data.rosterId is string
+        && request.resource.data.rosterId.size() > 0
+        && request.resource.data.rosterId.size() <= 80
+        && request.resource.data.rosterRevision is int
+        && request.resource.data.rosterRevision >= 0
+        && request.resource.data.employeeId is string
+        && exists(
+          employeePath(companyId, request.resource.data.employeeId)
+        )
+        && request.resource.data.employeeAuthUid == get(
+          employeePath(companyId, request.resource.data.employeeId)
+        ).data.authUid
+        && request.resource.data.managerEmployeeId == get(
+          employeePath(companyId, request.resource.data.employeeId)
+        ).data.managerEmployeeId
+        && request.resource.data.branchId == get(
+          employeePath(companyId, request.resource.data.employeeId)
+        ).data.branchId
+        && request.resource.data.locationId is string
+        && exists(
+          locationPath(companyId, request.resource.data.locationId)
+        )
+        && (
+          request.resource.data.status != 'draft'
+          || get(
+            locationPath(companyId, request.resource.data.locationId)
+          ).data.status == 'active'
+        )
+        && validIsoDate(request.resource.data.workDate)
+        && request.resource.data.templateId is string
+        && exists(
+          shiftTemplatePath(
+            companyId,
+            request.resource.data.templateId
+          )
+        )
+        && (
+          request.resource.data.status != 'draft'
+          || get(
+            shiftTemplatePath(
+              companyId,
+              request.resource.data.templateId
+            )
+          ).data.status == 'active'
+        )
+        && (
+          request.resource.data.status != 'draft'
+          || request.resource.data.templateKind == get(
+            shiftTemplatePath(
+              companyId,
+              request.resource.data.templateId
+            )
+          ).data.kind
+        )
+        && request.resource.data.flexWindowMinutes is int
+        && request.resource.data.flexWindowMinutes >= 0
+        && request.resource.data.flexWindowMinutes <= 240
+        && request.resource.data.segments is list
+        && request.resource.data.segments.size() >= 1
+        && request.resource.data.segments.size() <= 2
+        && validPublishedShiftSegment(
+          companyId,
+          request.resource.data.segments[0],
+          request.resource.data.templateId,
+          request.resource.data.status == 'draft'
+        )
+        && request.resource.data.segments[0].locationId
+          == request.resource.data.locationId
+        && (
+          request.resource.data.segments.size() == 1
+          || (
+            validPublishedShiftSegment(
+              companyId,
+              request.resource.data.segments[1],
+              request.resource.data.templateId,
+              request.resource.data.status == 'draft'
+            )
+            && request.resource.data.segments[1].locationId
+              == request.resource.data.locationId
+          )
+        )
+        && request.resource.data.totalMinutes is int
+        && request.resource.data.totalMinutes >= 1
+        && request.resource.data.totalMinutes <= 1440
+        && request.resource.data.status in [
+          'draft',
+          'published',
+          'superseded'
+        ]
+        && (
+          request.resource.data.status != 'draft'
+          || assignmentMatchesActiveTemplate(
+            companyId,
+            request.resource.data
+          )
+        )
+        && request.resource.data.version is int
+        && request.resource.data.version >= 0
+        && request.resource.data.previousAssignmentId is string
+        && request.resource.data.previousAssignmentId.size() <= 180
+        && request.resource.data.supersededBy is string
+        && request.resource.data.supersededBy.size() <= 180
+        && request.resource.data.sourceRequestId is string
+        && request.resource.data.sourceRequestId.size() <= 80
+        && validConflictCheck(request.resource.data.conflictCheck)
+        && request.resource.data.createdAt is timestamp
+        && request.resource.data.createdBy is string
+        && (
+          request.resource.data.publishedAt == null
+          || request.resource.data.publishedAt is timestamp
+        )
+        && request.resource.data.publishedBy is string
+        && request.resource.data.updatedAt is timestamp
+        && request.resource.data.updatedBy is string;
+    }
+
+    function validScheduleLockShape(companyId, lockId) {
+      return request.resource.data.keys().hasAll([
+          'id',
+          'companyId',
+          'employeeId',
+          'employeeAuthUid',
+          'managerEmployeeId',
+          'workDate',
+          'currentAssignmentId',
+          'version',
+          'updatedAt',
+          'updatedBy'
+        ])
+        && request.resource.data.keys().hasOnly([
+          'id',
+          'companyId',
+          'employeeId',
+          'employeeAuthUid',
+          'managerEmployeeId',
+          'workDate',
+          'currentAssignmentId',
+          'version',
+          'updatedAt',
+          'updatedBy'
+        ])
+        && request.resource.data.id == lockId
+        && request.resource.data.companyId == companyId
+        && request.resource.data.employeeId is string
+        && request.resource.data.employeeAuthUid is string
+        && request.resource.data.managerEmployeeId is string
+        && validIsoDate(request.resource.data.workDate)
+        && request.resource.data.currentAssignmentId is string
+        && request.resource.data.currentAssignmentId.size() > 0
+        && request.resource.data.currentAssignmentId.size() <= 180
+        && request.resource.data.version is int
+        && request.resource.data.version >= 1
+        && existsAfter(
+          shiftAssignmentPath(
+            companyId,
+            request.resource.data.currentAssignmentId
+          )
+        )
+        && getAfter(
+          shiftAssignmentPath(
+            companyId,
+            request.resource.data.currentAssignmentId
+          )
+        ).data.status == 'published'
+        && getAfter(
+          shiftAssignmentPath(
+            companyId,
+            request.resource.data.currentAssignmentId
+          )
+        ).data.employeeId == request.resource.data.employeeId
+        && getAfter(
+          shiftAssignmentPath(
+            companyId,
+            request.resource.data.currentAssignmentId
+          )
+        ).data.employeeAuthUid
+          == request.resource.data.employeeAuthUid
+        && getAfter(
+          shiftAssignmentPath(
+            companyId,
+            request.resource.data.currentAssignmentId
+          )
+        ).data.managerEmployeeId
+          == request.resource.data.managerEmployeeId
+        && getAfter(
+          shiftAssignmentPath(
+            companyId,
+            request.resource.data.currentAssignmentId
+          )
+        ).data.workDate == request.resource.data.workDate
+        && getAfter(
+          shiftAssignmentPath(
+            companyId,
+            request.resource.data.currentAssignmentId
+          )
+        ).data.version == request.resource.data.version
+        && request.resource.data.updatedAt == request.time
+        && request.resource.data.updatedBy == request.auth.uid;
+    }
+
+    function validRequestFulfilledShiftAssignment(
+      companyId,
+      assignmentId
+    ) {
+      let sourceRequestId = request.resource.data.sourceRequestId;
+      let completedRequest = getAfter(
+        workflowRequestPath(companyId, sourceRequestId)
+      ).data;
+      let previousAssignment = get(
+        shiftAssignmentPath(
+          companyId,
+          request.resource.data.previousAssignmentId
+        )
+      ).data;
+      return admin(companyId)
+        && sourceRequestId is string
+        && sourceRequestId.size() > 0
+        && sourceRequestId.size() <= 80
+        && request.resource.data.rosterId
+          == 'REQUEST-' + sourceRequestId
+        && request.resource.data.rosterRevision == 0
+        && request.resource.data.status == 'published'
+        && assignmentMatchesActiveTemplate(
+          companyId,
+          request.resource.data
+        )
+        && request.resource.data.version >= 2
+        && request.resource.data.supersededBy == ''
+        && request.resource.data.previousAssignmentId is string
+        && request.resource.data.previousAssignmentId.size() > 0
+        && exists(
+          shiftAssignmentPath(
+            companyId,
+            request.resource.data.previousAssignmentId
+          )
+        )
+        && previousAssignment.status == 'published'
+        && previousAssignment.employeeId
+          == request.resource.data.employeeId
+        && previousAssignment.employeeAuthUid
+          == request.resource.data.employeeAuthUid
+        && previousAssignment.workDate
+          == request.resource.data.workDate
+        && request.resource.data.version
+          == previousAssignment.version + 1
+        && getAfter(
+          shiftAssignmentPath(
+            companyId,
+            request.resource.data.previousAssignmentId
+          )
+        ).data.status == 'superseded'
+        && getAfter(
+          shiftAssignmentPath(
+            companyId,
+            request.resource.data.previousAssignmentId
+          )
+        ).data.supersededBy == assignmentId
+        && request.resource.data.conflictCheck.policyId
+          == get(
+            timeSettingsPath(companyId)
+          ).data.activePolicyId
+        && request.resource.data.conflictCheck.result in [
+          'passed',
+          'override'
+        ]
+        && (
+          request.resource.data.conflictCheck.result == 'passed'
+          || request.resource.data.conflictCheck.reason.size() >= 8
+        )
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.publishedAt == request.time
+        && request.resource.data.publishedBy == request.auth.uid
+        && request.resource.data.updatedAt == request.time
+        && request.resource.data.updatedBy == request.auth.uid
+        && existsAfter(
+          workflowRequestPath(companyId, sourceRequestId)
+        )
+        && completedRequest.status == 'COMPLETED'
+        && completedRequest.typeCode in [
+          'shift_change',
+          'shift_swap'
+        ]
+        && (
+          (
+            completedRequest.typeCode == 'shift_change'
+            && request.resource.data.previousAssignmentId
+              == completedRequest.payload.assignmentId
+            && request.resource.data.templateId
+              == completedRequest.payload.requestedShiftTemplateId
+            && request.resource.data.locationId
+              == previousAssignment.locationId
+          )
+          || (
+            completedRequest.typeCode == 'shift_swap'
+            && (
+              (
+                request.resource.data.previousAssignmentId
+                  == completedRequest.payload.assignmentId
+                && request.resource.data.templateId == get(
+                  shiftAssignmentPath(
+                    companyId,
+                    completedRequest.payload.colleagueAssignmentId
+                  )
+                ).data.templateId
+                && request.resource.data.locationId == get(
+                  shiftAssignmentPath(
+                    companyId,
+                    completedRequest.payload.colleagueAssignmentId
+                  )
+                ).data.locationId
+              )
+              || (
+                request.resource.data.previousAssignmentId
+                  == completedRequest.payload.colleagueAssignmentId
+                && request.resource.data.templateId == get(
+                  shiftAssignmentPath(
+                    companyId,
+                    completedRequest.payload.assignmentId
+                  )
+                ).data.templateId
+                && request.resource.data.locationId == get(
+                  shiftAssignmentPath(
+                    companyId,
+                    completedRequest.payload.assignmentId
+                  )
+                ).data.locationId
+              )
+            )
+          )
+        )
+        && completedRequest.completedAt == request.time
+        && completedRequest.updatedAt == request.time
+        && completedRequest.updatedBy == request.auth.uid
+        && completedRequest.fulfillmentRef.kind
+          == completedRequest.typeCode
+        && (
+          completedRequest.fulfillmentRef.id == assignmentId
+          || completedRequest.fulfillmentRef.colleagueId == assignmentId
+        )
+        && getAfter(
+          scheduleLockPath(
+            companyId,
+            request.resource.data.employeeId
+              + '__'
+              + request.resource.data.workDate
+          )
+        ).data.currentAssignmentId == assignmentId
+        && getAfter(
+          scheduleLockPath(
+            companyId,
+            request.resource.data.employeeId
+              + '__'
+              + request.resource.data.workDate
+          )
+        ).data.version == request.resource.data.version;
+    }
+
     match /nasna_users/{uid} {
       allow get: if signedIn()
         && (
@@ -2748,6 +4001,738 @@ service cloud.firestore {
           ).data.workMode == request.resource.data.newWorkMode;
 
         allow update, delete: if false;
+      }
+
+      match /timePolicies/{policyId} {
+        allow read: if activeMember(companyId);
+
+        allow create: if admin(companyId)
+          && validTimePolicyShape(companyId, policyId)
+          && request.resource.data.createdAt == request.time
+          && request.resource.data.createdBy == request.auth.uid
+          && request.resource.data.updatedAt == request.time
+          && request.resource.data.updatedBy == request.auth.uid
+          && getAfter(timeSettingsPath(companyId)).data.activePolicyId
+            == policyId
+          && getAfter(timeSettingsPath(companyId)).data.policyVersion
+            == request.resource.data.version;
+
+        allow update, delete: if false;
+      }
+
+      match /timeSettings/{settingsId} {
+        allow read: if activeMember(companyId)
+          && settingsId == 'current';
+
+        allow create: if admin(companyId)
+          && settingsId == 'current'
+          && validTimeSettingsShape(companyId)
+          && request.resource.data.createdAt == request.time
+          && request.resource.data.createdBy == request.auth.uid
+          && request.resource.data.updatedAt == request.time
+          && request.resource.data.updatedBy == request.auth.uid;
+
+        allow update: if admin(companyId)
+          && settingsId == 'current'
+          && validTimeSettingsShape(companyId)
+          && request.resource.data.id == resource.data.id
+          && request.resource.data.companyId == resource.data.companyId
+          && request.resource.data.createdAt == resource.data.createdAt
+          && request.resource.data.createdBy == resource.data.createdBy
+          && request.resource.data.updatedAt == request.time
+          && request.resource.data.updatedBy == request.auth.uid
+          && request.resource.data.policyVersion
+            >= resource.data.policyVersion
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'activePolicyId',
+            'policyVersion',
+            'holidayCalendarYear',
+            'holidayCalendarConfirmedAt',
+            'requestServicesEnabled',
+            'requestTypeIds',
+            'updatedAt',
+            'updatedBy'
+          ]);
+
+        allow delete: if false;
+      }
+
+      match /shiftTemplates/{templateId} {
+        allow read: if activeMember(companyId);
+
+        allow create: if admin(companyId)
+          && validShiftTemplateShape(companyId, templateId)
+          && request.resource.data.createdAt == request.time
+          && request.resource.data.createdBy == request.auth.uid
+          && request.resource.data.updatedAt == request.time
+          && request.resource.data.updatedBy == request.auth.uid;
+
+        allow update: if admin(companyId)
+          && validShiftTemplateShape(companyId, templateId)
+          && request.resource.data.id == resource.data.id
+          && request.resource.data.companyId == resource.data.companyId
+          && request.resource.data.code == resource.data.code
+          && request.resource.data.createdAt == resource.data.createdAt
+          && request.resource.data.createdBy == resource.data.createdBy
+          && request.resource.data.updatedAt == request.time
+          && request.resource.data.updatedBy == request.auth.uid
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'nameEn',
+            'nameAr',
+            'kind',
+            'flexWindowMinutes',
+            'segments',
+            'totalMinutes',
+            'status',
+            'updatedAt',
+            'updatedBy'
+          ]);
+
+        allow delete: if false;
+      }
+
+      match /holidays/{holidayId} {
+        allow read: if activeMember(companyId);
+
+        allow create: if admin(companyId)
+          && validHolidayShape(companyId, holidayId)
+          && request.resource.data.createdAt == request.time
+          && request.resource.data.createdBy == request.auth.uid
+          && request.resource.data.updatedAt == request.time
+          && request.resource.data.updatedBy == request.auth.uid;
+
+        allow update: if admin(companyId)
+          && validHolidayShape(companyId, holidayId)
+          && request.resource.data.id == resource.data.id
+          && request.resource.data.companyId == resource.data.companyId
+          && request.resource.data.createdAt == resource.data.createdAt
+          && request.resource.data.createdBy == resource.data.createdBy
+          && request.resource.data.updatedAt == request.time
+          && request.resource.data.updatedBy == request.auth.uid
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'date',
+            'year',
+            'nameEn',
+            'nameAr',
+            'branchId',
+            'paid',
+            'status',
+            'updatedAt',
+            'updatedBy'
+          ]);
+
+        allow delete: if false;
+      }
+
+      match /rosters/{rosterId} {
+        allow read: if admin(companyId)
+          || (
+            managerActor(companyId)
+            && (
+              resource.data.ownerUid == request.auth.uid
+              || resource.data.managerEmployeeId
+                == member(companyId).data.employeeId
+            )
+          );
+
+        allow create: if (
+            admin(companyId)
+            || (
+              managerActor(companyId)
+              && request.resource.data.ownerUid == request.auth.uid
+              && request.resource.data.managerEmployeeId
+                == member(companyId).data.employeeId
+              && request.resource.data.scopeKind == 'manager'
+            )
+          )
+          && validRosterShape(companyId, rosterId)
+          && request.resource.data.ownerUid == request.auth.uid
+          && request.resource.data.status == 'draft'
+          && request.resource.data.policyId == get(
+            timeSettingsPath(companyId)
+          ).data.activePolicyId
+          && request.resource.data.draftState == 'saving'
+          && request.resource.data.draftToken.size() >= 8
+          && request.resource.data.publishTotal
+            == request.resource.data.assignmentCount
+          && request.resource.data.publishCompleted == 0
+          && request.resource.data.publishToken == ''
+          && request.resource.data.publishConflictResult == ''
+          && request.resource.data.publishOverrideReason == ''
+          && request.resource.data.lastPublishedAssignmentId == ''
+          && request.resource.data.publishedAt == null
+          && request.resource.data.publishedBy == ''
+          && request.resource.data.createdAt == request.time
+          && request.resource.data.createdBy == request.auth.uid
+          && request.resource.data.updatedAt == request.time
+          && request.resource.data.updatedBy == request.auth.uid;
+
+        allow update: if (
+            admin(companyId)
+            || (
+              managerActor(companyId)
+              && resource.data.ownerUid == request.auth.uid
+              && resource.data.managerEmployeeId
+                == member(companyId).data.employeeId
+              && resource.data.scopeKind == 'manager'
+            )
+          )
+          && validRosterShape(companyId, rosterId)
+          && request.resource.data.id == resource.data.id
+          && request.resource.data.companyId == resource.data.companyId
+          && request.resource.data.ownerUid == resource.data.ownerUid
+          && request.resource.data.managerEmployeeId
+            == resource.data.managerEmployeeId
+          && request.resource.data.scopeKind == resource.data.scopeKind
+          && request.resource.data.startDate == resource.data.startDate
+          && request.resource.data.endDate == resource.data.endDate
+          && request.resource.data.createdAt == resource.data.createdAt
+          && request.resource.data.createdBy == resource.data.createdBy
+          && request.resource.data.updatedAt == request.time
+          && request.resource.data.updatedBy == request.auth.uid
+          && (
+            (
+              resource.data.status == 'draft'
+              && request.resource.data.status == 'draft'
+              && request.resource.data.publishedAt == null
+              && request.resource.data.publishedBy == ''
+              && (
+                (
+                  request.resource.data.draftState == 'saving'
+                  && request.resource.data.draftToken
+                    != resource.data.draftToken
+                  && request.resource.data.draftToken.size() >= 8
+                  && request.resource.data.policyId == get(
+                    timeSettingsPath(companyId)
+                  ).data.activePolicyId
+                  && request.resource.data.publishTotal
+                    == request.resource.data.assignmentCount
+                  && request.resource.data.publishCompleted == 0
+                  && request.resource.data.publishToken == ''
+                  && request.resource.data.publishConflictResult == ''
+                  && request.resource.data.publishOverrideReason == ''
+                  && request.resource.data.lastPublishedAssignmentId == ''
+                  && request.resource.data.revision
+                    == resource.data.revision + 1
+                  && request.resource.data.diff(resource.data)
+                    .affectedKeys().hasOnly([
+                      'revision',
+                      'assignmentCount',
+                      'draftState',
+                      'draftToken',
+                      'timezone',
+                      'policyId',
+                      'publishTotal',
+                      'publishCompleted',
+                      'publishToken',
+                      'publishConflictResult',
+                      'publishOverrideReason',
+                      'lastPublishedAssignmentId',
+                      'updatedAt',
+                      'updatedBy'
+                    ])
+                )
+                || (
+                  resource.data.draftState == 'saving'
+                  && request.resource.data.draftState == 'ready'
+                  && request.resource.data.draftToken
+                    == resource.data.draftToken
+                  && request.resource.data.revision
+                    == resource.data.revision
+                  && request.resource.data.assignmentCount
+                    == resource.data.assignmentCount
+                  && request.resource.data.timezone
+                    == resource.data.timezone
+                  && request.resource.data.policyId
+                    == resource.data.policyId
+                  && request.resource.data.publishTotal
+                    == resource.data.publishTotal
+                  && request.resource.data.publishCompleted
+                    == resource.data.publishCompleted
+                  && request.resource.data.publishToken
+                    == resource.data.publishToken
+                  && request.resource.data.publishConflictResult
+                    == resource.data.publishConflictResult
+                  && request.resource.data.publishOverrideReason
+                    == resource.data.publishOverrideReason
+                  && request.resource.data.lastPublishedAssignmentId
+                    == resource.data.lastPublishedAssignmentId
+                  && request.resource.data.diff(resource.data)
+                    .affectedKeys().hasOnly([
+                      'draftState',
+                      'updatedAt',
+                      'updatedBy'
+                    ])
+                )
+              )
+            )
+            || (
+              resource.data.status == 'draft'
+              && request.resource.data.status == 'publishing'
+              && resource.data.draftState == 'ready'
+              && request.resource.data.draftState == 'ready'
+              && request.resource.data.draftToken
+                == resource.data.draftToken
+              && request.resource.data.timezone == resource.data.timezone
+              && request.resource.data.policyId == resource.data.policyId
+              && request.resource.data.revision == resource.data.revision
+              && request.resource.data.assignmentCount
+                == resource.data.assignmentCount
+              && request.resource.data.publishTotal
+                == resource.data.assignmentCount
+              && request.resource.data.publishCompleted == 0
+              && request.resource.data.publishToken is string
+              && request.resource.data.publishToken.size() >= 8
+              && request.resource.data.publishConflictResult in [
+                'passed',
+                'override'
+              ]
+              && (
+                (
+                  request.resource.data.publishConflictResult == 'passed'
+                  && request.resource.data.publishOverrideReason == ''
+                )
+                || (
+                  admin(companyId)
+                  && request.resource.data.publishConflictResult == 'override'
+                  && request.resource.data.publishOverrideReason.size() >= 8
+                )
+              )
+              && request.resource.data.lastPublishedAssignmentId == ''
+              && request.resource.data.publishedAt == null
+              && request.resource.data.publishedBy == ''
+              && request.resource.data.diff(resource.data)
+                .affectedKeys().hasOnly([
+                  'status',
+                  'publishTotal',
+                  'publishCompleted',
+                  'publishToken',
+                  'publishConflictResult',
+                  'publishOverrideReason',
+                  'updatedAt',
+                  'updatedBy'
+                ])
+            )
+            || (
+              resource.data.status == 'publishing'
+              && request.resource.data.status == 'publishing'
+              && request.resource.data.revision == resource.data.revision
+              && request.resource.data.assignmentCount
+                == resource.data.assignmentCount
+              && request.resource.data.draftState
+                == resource.data.draftState
+              && request.resource.data.draftToken
+                == resource.data.draftToken
+              && request.resource.data.timezone == resource.data.timezone
+              && request.resource.data.policyId == resource.data.policyId
+              && request.resource.data.publishTotal
+                == resource.data.publishTotal
+              && request.resource.data.publishToken
+                == resource.data.publishToken
+              && request.resource.data.publishConflictResult
+                == resource.data.publishConflictResult
+              && request.resource.data.publishOverrideReason
+                == resource.data.publishOverrideReason
+              && request.resource.data.publishToken.size() >= 8
+              && request.resource.data.publishCompleted
+                == resource.data.publishCompleted + 1
+              && request.resource.data.lastPublishedAssignmentId is string
+              && request.resource.data.lastPublishedAssignmentId.size() > 0
+              && request.resource.data.lastPublishedAssignmentId
+                != resource.data.lastPublishedAssignmentId
+              && exists(
+                shiftAssignmentPath(
+                  companyId,
+                  request.resource.data.lastPublishedAssignmentId
+                )
+              )
+              && get(
+                shiftAssignmentPath(
+                  companyId,
+                  request.resource.data.lastPublishedAssignmentId
+                )
+              ).data.status == 'draft'
+              && getAfter(
+                shiftAssignmentPath(
+                  companyId,
+                  request.resource.data.lastPublishedAssignmentId
+                )
+              ).data.status == 'published'
+              && getAfter(
+                shiftAssignmentPath(
+                  companyId,
+                  request.resource.data.lastPublishedAssignmentId
+                )
+              ).data.rosterId == rosterId
+              && getAfter(
+                shiftAssignmentPath(
+                  companyId,
+                  request.resource.data.lastPublishedAssignmentId
+                )
+              ).data.rosterRevision == resource.data.revision
+              && getAfter(
+                shiftAssignmentPath(
+                  companyId,
+                  request.resource.data.lastPublishedAssignmentId
+                )
+              ).data.updatedAt == request.time
+              && getAfter(
+                shiftAssignmentPath(
+                  companyId,
+                  request.resource.data.lastPublishedAssignmentId
+                )
+              ).data.updatedBy == request.auth.uid
+              && request.resource.data.publishedAt == null
+              && request.resource.data.publishedBy == ''
+              && request.resource.data.diff(resource.data)
+                .affectedKeys().hasOnly([
+                  'publishCompleted',
+                  'lastPublishedAssignmentId',
+                  'updatedAt',
+                  'updatedBy'
+                ])
+            )
+            || (
+              resource.data.status == 'publishing'
+              && request.resource.data.status == 'published'
+              && resource.data.publishCompleted
+                == resource.data.publishTotal
+              && request.resource.data.publishCompleted
+                == resource.data.publishCompleted
+              && request.resource.data.draftState
+                == resource.data.draftState
+              && request.resource.data.draftToken
+                == resource.data.draftToken
+              && request.resource.data.timezone == resource.data.timezone
+              && request.resource.data.policyId == resource.data.policyId
+              && request.resource.data.publishTotal
+                == resource.data.publishTotal
+              && request.resource.data.publishToken
+                == resource.data.publishToken
+              && request.resource.data.publishConflictResult
+                == resource.data.publishConflictResult
+              && request.resource.data.publishOverrideReason
+                == resource.data.publishOverrideReason
+              && request.resource.data.lastPublishedAssignmentId
+                == resource.data.lastPublishedAssignmentId
+              && request.resource.data.publishedAt == request.time
+              && request.resource.data.publishedBy == request.auth.uid
+              && request.resource.data.revision == resource.data.revision
+              && request.resource.data.diff(resource.data)
+                .affectedKeys().hasOnly([
+                  'status',
+                  'publishedAt',
+                  'publishedBy',
+                  'updatedAt',
+                  'updatedBy'
+                ])
+            )
+          );
+
+        allow delete: if false;
+      }
+
+      match /shiftAssignments/{assignmentId} {
+        allow read: if admin(companyId)
+          || (
+            activeMember(companyId)
+            && resource.data.employeeAuthUid == request.auth.uid
+            && resource.data.status == 'published'
+          )
+          || (
+            managerControlsEmployee(
+              companyId,
+              resource.data.employeeId
+            )
+            && resource.data.managerEmployeeId
+              == member(companyId).data.employeeId
+          );
+
+        allow create: if canScheduleEmployee(
+              companyId,
+              request.resource.data.employeeId
+            )
+            && validShiftAssignmentShape(companyId, assignmentId)
+            && (
+              (
+                request.resource.data.status == 'draft'
+                && request.resource.data.version == 0
+                && request.resource.data.previousAssignmentId == ''
+                && request.resource.data.supersededBy == ''
+                && request.resource.data.sourceRequestId == ''
+                && request.resource.data.conflictCheck.result == 'pending'
+                && request.resource.data.publishedAt == null
+                && request.resource.data.publishedBy == ''
+                && existsAfter(
+                  rosterPath(companyId, request.resource.data.rosterId)
+                )
+                && request.resource.data.rosterRevision == getAfter(
+                  rosterPath(companyId, request.resource.data.rosterId)
+                ).data.revision
+                && getAfter(
+                  rosterPath(companyId, request.resource.data.rosterId)
+                ).data.status == 'draft'
+                && getAfter(
+                  rosterPath(companyId, request.resource.data.rosterId)
+                ).data.draftState == 'saving'
+                && getAfter(
+                  rosterPath(companyId, request.resource.data.rosterId)
+                ).data.ownerUid == request.auth.uid
+                && request.resource.data.createdAt == request.time
+                && request.resource.data.createdBy == request.auth.uid
+                && request.resource.data.updatedAt == request.time
+                && request.resource.data.updatedBy == request.auth.uid
+              )
+              || validRequestFulfilledShiftAssignment(
+                companyId,
+                assignmentId
+              )
+            );
+
+        allow update: if canScheduleEmployee(
+            companyId,
+            resource.data.employeeId
+          )
+          && validShiftAssignmentShape(companyId, assignmentId)
+          && request.resource.data.id == resource.data.id
+          && request.resource.data.companyId == resource.data.companyId
+          && request.resource.data.rosterId == resource.data.rosterId
+          && request.resource.data.employeeId == resource.data.employeeId
+          && request.resource.data.employeeAuthUid
+            == resource.data.employeeAuthUid
+          && request.resource.data.managerEmployeeId
+            == resource.data.managerEmployeeId
+          && request.resource.data.branchId == resource.data.branchId
+          && request.resource.data.workDate == resource.data.workDate
+          && request.resource.data.createdAt == resource.data.createdAt
+          && request.resource.data.createdBy == resource.data.createdBy
+          && request.resource.data.updatedAt == request.time
+          && request.resource.data.updatedBy == request.auth.uid
+          && (
+            (
+              resource.data.status == 'draft'
+              && request.resource.data.status == 'draft'
+              && request.resource.data.version == 0
+              && request.resource.data.previousAssignmentId == ''
+              && request.resource.data.supersededBy == ''
+              && request.resource.data.sourceRequestId == ''
+              && request.resource.data.conflictCheck.result == 'pending'
+              && request.resource.data.publishedAt == null
+              && request.resource.data.publishedBy == ''
+              && request.resource.data.rosterRevision == getAfter(
+                rosterPath(companyId, resource.data.rosterId)
+              ).data.revision
+              && getAfter(
+                rosterPath(companyId, resource.data.rosterId)
+              ).data.status == 'draft'
+              && getAfter(
+                rosterPath(companyId, resource.data.rosterId)
+              ).data.draftState == 'saving'
+              && getAfter(
+                rosterPath(companyId, resource.data.rosterId)
+              ).data.ownerUid == request.auth.uid
+              && request.resource.data.diff(resource.data)
+                .affectedKeys().hasOnly([
+                  'rosterRevision',
+                  'locationId',
+                  'templateId',
+                  'templateKind',
+                  'flexWindowMinutes',
+                  'segments',
+                  'totalMinutes',
+                  'conflictCheck',
+                  'updatedAt',
+                  'updatedBy'
+                ])
+            )
+            || (
+              resource.data.status == 'draft'
+              && request.resource.data.status == 'published'
+              && request.resource.data.rosterRevision
+                == resource.data.rosterRevision
+              && request.resource.data.version >= 1
+              && request.resource.data.supersededBy == ''
+              && request.resource.data.sourceRequestId == ''
+              && request.resource.data.conflictCheck.policyId
+                == resource.data.conflictCheck.policyId
+              && request.resource.data.conflictCheck.result in [
+                'passed',
+                'override'
+              ]
+              && (
+                request.resource.data.conflictCheck.result == 'passed'
+                || (
+                  admin(companyId)
+                  && request.resource.data.conflictCheck.reason.size()
+                    >= 8
+                )
+              )
+              && request.resource.data.publishedAt == request.time
+              && request.resource.data.publishedBy == request.auth.uid
+              && getAfter(
+                rosterPath(companyId, resource.data.rosterId)
+              ).data.status == 'publishing'
+              && getAfter(
+                rosterPath(companyId, resource.data.rosterId)
+              ).data.revision == request.resource.data.rosterRevision
+              && getAfter(
+                rosterPath(companyId, resource.data.rosterId)
+              ).data.lastPublishedAssignmentId == assignmentId
+              && getAfter(
+                rosterPath(companyId, resource.data.rosterId)
+              ).data.publishCompleted
+                == get(
+                  rosterPath(companyId, resource.data.rosterId)
+                ).data.publishCompleted + 1
+              && getAfter(
+                scheduleLockPath(
+                  companyId,
+                  request.resource.data.employeeId
+                    + '__'
+                    + request.resource.data.workDate
+                )
+              ).data.currentAssignmentId == assignmentId
+              && getAfter(
+                scheduleLockPath(
+                  companyId,
+                  request.resource.data.employeeId
+                    + '__'
+                    + request.resource.data.workDate
+                )
+              ).data.version == request.resource.data.version
+              && request.resource.data.diff(resource.data)
+                .affectedKeys().hasOnly([
+                  'status',
+                  'version',
+                  'previousAssignmentId',
+                  'conflictCheck',
+                  'publishedAt',
+                  'publishedBy',
+                  'updatedAt',
+                  'updatedBy'
+                ])
+            )
+            || (
+              resource.data.status == 'published'
+              && request.resource.data.status == 'superseded'
+              && request.resource.data.rosterRevision
+                == resource.data.rosterRevision
+              && request.resource.data.version == resource.data.version
+              && request.resource.data.previousAssignmentId
+                == resource.data.previousAssignmentId
+              && request.resource.data.supersededBy is string
+              && request.resource.data.supersededBy.size() > 0
+              && existsAfter(
+                shiftAssignmentPath(
+                  companyId,
+                  request.resource.data.supersededBy
+                )
+              )
+              && getAfter(
+                shiftAssignmentPath(
+                  companyId,
+                  request.resource.data.supersededBy
+                )
+              ).data.status == 'published'
+              && getAfter(
+                shiftAssignmentPath(
+                  companyId,
+                  request.resource.data.supersededBy
+                )
+              ).data.employeeId == resource.data.employeeId
+              && getAfter(
+                shiftAssignmentPath(
+                  companyId,
+                  request.resource.data.supersededBy
+                )
+              ).data.workDate == resource.data.workDate
+              && getAfter(
+                scheduleLockPath(
+                  companyId,
+                  resource.data.employeeId
+                    + '__'
+                    + resource.data.workDate
+                )
+              ).data.currentAssignmentId
+                == request.resource.data.supersededBy
+              && request.resource.data.diff(resource.data)
+                .affectedKeys().hasOnly([
+                  'status',
+                  'supersededBy',
+                  'updatedAt',
+                  'updatedBy'
+                ])
+            )
+          );
+
+        allow delete: if resource.data.status == 'draft'
+          && getAfter(
+            rosterPath(companyId, resource.data.rosterId)
+          ).data.status == 'draft'
+          && getAfter(
+            rosterPath(companyId, resource.data.rosterId)
+          ).data.draftState == 'saving'
+          && getAfter(
+            rosterPath(companyId, resource.data.rosterId)
+          ).data.ownerUid == request.auth.uid
+          && (
+            admin(companyId)
+            || (
+              managerActor(companyId)
+              && getAfter(
+                rosterPath(companyId, resource.data.rosterId)
+              ).data.scopeKind == 'manager'
+              && getAfter(
+                rosterPath(companyId, resource.data.rosterId)
+              ).data.managerEmployeeId
+                == member(companyId).data.employeeId
+            )
+          );
+      }
+
+      match /scheduleLocks/{lockId} {
+        allow read: if admin(companyId)
+          || (
+            activeMember(companyId)
+            && resource.data.employeeAuthUid == request.auth.uid
+          )
+          || managerControlsEmployee(
+            companyId,
+            resource.data.employeeId
+          );
+
+        allow create: if canScheduleEmployee(
+            companyId,
+            request.resource.data.employeeId
+          )
+          && validScheduleLockShape(companyId, lockId)
+          && request.resource.data.version == 1;
+
+        allow update: if canScheduleEmployee(
+            companyId,
+            resource.data.employeeId
+          )
+          && validScheduleLockShape(companyId, lockId)
+          && request.resource.data.id == resource.data.id
+          && request.resource.data.companyId == resource.data.companyId
+          && request.resource.data.employeeId == resource.data.employeeId
+          && request.resource.data.employeeAuthUid
+            == resource.data.employeeAuthUid
+          && request.resource.data.managerEmployeeId
+            == resource.data.managerEmployeeId
+          && request.resource.data.workDate == resource.data.workDate
+          && request.resource.data.version == resource.data.version + 1
+          && request.resource.data.currentAssignmentId
+            != resource.data.currentAssignmentId
+          && request.resource.data.diff(resource.data)
+            .affectedKeys().hasOnly([
+              'currentAssignmentId',
+              'version',
+              'updatedAt',
+              'updatedBy'
+            ]);
+
+        allow delete: if false;
       }
 
       match /requestTypes/{requestTypeId} {
@@ -3654,6 +5639,26 @@ service cloud.firestore {
           && (
             request.resource.data.action == 'company.created'
             || admin(companyId)
+            || (
+              managerActor(companyId)
+              && request.resource.data.action in [
+                'roster.updated',
+                'roster.published'
+              ]
+              && existsAfter(
+                rosterPath(companyId, request.resource.data.targetId)
+              )
+              && getAfter(
+                rosterPath(companyId, request.resource.data.targetId)
+              ).data.ownerUid == request.auth.uid
+              && getAfter(
+                rosterPath(companyId, request.resource.data.targetId)
+              ).data.scopeKind == 'manager'
+              && getAfter(
+                rosterPath(companyId, request.resource.data.targetId)
+              ).data.managerEmployeeId
+                == member(companyId).data.employeeId
+            )
           )
           && request.resource.data.keys().hasOnly([
             'companyId',
