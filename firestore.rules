@@ -46,6 +46,10 @@ service cloud.firestore {
       return /databases/$(database)/documents/nasna_companies/$(companyId)/employees/$(employeeId);
     }
 
+    function employeeMovementPath(companyId, movementId) {
+      return /databases/$(database)/documents/nasna_companies/$(companyId)/employeeMovements/$(movementId);
+    }
+
     function userPath(uid) {
       return /databases/$(database)/documents/nasna_users/$(uid);
     }
@@ -478,6 +482,7 @@ service cloud.firestore {
           'employmentType',
           'employmentStatus',
           'workMode',
+          'lastMovementId',
           'createdAt',
           'createdBy',
           'updatedAt',
@@ -532,6 +537,14 @@ service cloud.firestore {
         ]
         && request.resource.data.workMode in ['onsite', 'hybrid', 'remote']
         && (
+          !request.resource.data.keys().hasAny(['lastMovementId'])
+          || (
+            request.resource.data.lastMovementId is string
+            && request.resource.data.lastMovementId.size() > 0
+            && request.resource.data.lastMovementId.size() <= 80
+          )
+        )
+        && (
           (
             request.resource.data.employmentStatus == 'suspended'
             && request.resource.data.accessStatus == 'disabled'
@@ -545,6 +558,327 @@ service cloud.firestore {
         && request.resource.data.createdBy is string
         && request.resource.data.updatedAt is timestamp
         && request.resource.data.updatedBy is string;
+    }
+
+    function validEmployeeUpdateValues(employeeId) {
+      return request.resource.data.accessStatus in ['active', 'disabled']
+        && validStructureName(request.resource.data.fullNameEn)
+        && validStructureName(request.resource.data.fullNameAr)
+        && request.resource.data.workPhone is string
+        && request.resource.data.workPhone.size() <= 30
+        && validStructureCode(request.resource.data.positionId)
+        && validStructureCode(request.resource.data.jobTitleId)
+        && validStructureCode(request.resource.data.branchId)
+        && (
+          request.resource.data.locationId == ''
+          || validStructureCode(request.resource.data.locationId)
+        )
+        && validStructureCode(request.resource.data.departmentId)
+        && (
+          request.resource.data.teamId == ''
+          || validStructureCode(request.resource.data.teamId)
+        )
+        && (
+          request.resource.data.managerEmployeeId == ''
+          || validStructureCode(request.resource.data.managerEmployeeId)
+        )
+        && request.resource.data.managerEmployeeId != employeeId
+        && request.resource.data.hireDate is timestamp
+        && request.resource.data.employmentType in [
+          'permanent',
+          'fixed_term',
+          'part_time',
+          'intern',
+          'consultant'
+        ]
+        && request.resource.data.employmentStatus in [
+          'active',
+          'probation',
+          'leave',
+          'suspended'
+        ]
+        && request.resource.data.workMode in ['onsite', 'hybrid', 'remote']
+        && (
+          !request.resource.data.keys().hasAny(['lastMovementId'])
+          || (
+            request.resource.data.lastMovementId is string
+            && request.resource.data.lastMovementId.size() > 0
+            && request.resource.data.lastMovementId.size() <= 80
+          )
+        )
+        && (
+          (
+            request.resource.data.employmentStatus == 'suspended'
+            && request.resource.data.accessStatus == 'disabled'
+          )
+          || (
+            activeEmploymentStatus(request.resource.data.employmentStatus)
+            && request.resource.data.accessStatus == 'active'
+          )
+        );
+    }
+
+    function validEmployeeDocumentShape(companyId, documentId) {
+      return request.resource.data.keys().hasAll([
+          'id',
+          'companyId',
+          'employeeId',
+          'employeeAuthUid',
+          'type',
+          'title',
+          'documentNumber',
+          'issueDate',
+          'expiryDate',
+          'linkUrl',
+          'visibility',
+          'status',
+          'createdAt',
+          'createdBy',
+          'updatedAt',
+          'updatedBy'
+        ])
+        && request.resource.data.keys().hasOnly([
+          'id',
+          'companyId',
+          'employeeId',
+          'employeeAuthUid',
+          'type',
+          'title',
+          'documentNumber',
+          'issueDate',
+          'expiryDate',
+          'linkUrl',
+          'visibility',
+          'status',
+          'createdAt',
+          'createdBy',
+          'updatedAt',
+          'updatedBy'
+        ])
+        && request.resource.data.id == documentId
+        && request.resource.data.companyId == companyId
+        && request.resource.data.employeeId is string
+        && validStructureCode(request.resource.data.employeeId)
+        && request.resource.data.employeeAuthUid is string
+        && request.resource.data.employeeAuthUid.size() > 0
+        && request.resource.data.employeeAuthUid.size() <= 128
+        && request.resource.data.type in [
+          'contract',
+          'national_id',
+          'passport',
+          'work_permit',
+          'insurance',
+          'certificate',
+          'other'
+        ]
+        && request.resource.data.title is string
+        && request.resource.data.title.size() > 0
+        && request.resource.data.title.size() <= 140
+        && request.resource.data.documentNumber is string
+        && request.resource.data.documentNumber.size() <= 80
+        && (
+          request.resource.data.issueDate == null
+          || request.resource.data.issueDate is timestamp
+        )
+        && (
+          request.resource.data.expiryDate == null
+          || request.resource.data.expiryDate is timestamp
+        )
+        && (
+          request.resource.data.issueDate == null
+          || request.resource.data.expiryDate == null
+          || request.resource.data.expiryDate >= request.resource.data.issueDate
+        )
+        && request.resource.data.linkUrl is string
+        && request.resource.data.linkUrl.size() <= 500
+        && (
+          request.resource.data.linkUrl == ''
+          || request.resource.data.linkUrl.matches('^https://.+$')
+        )
+        && request.resource.data.visibility in ['employee', 'hr_only']
+        && request.resource.data.status in ['active', 'revoked']
+        && request.resource.data.createdAt is timestamp
+        && request.resource.data.createdBy is string
+        && request.resource.data.updatedAt is timestamp
+        && request.resource.data.updatedBy is string;
+    }
+
+    function validEmployeeMovementShape(companyId, movementId) {
+      return request.resource.data.keys().hasAll([
+          'id',
+          'companyId',
+          'employeeId',
+          'employeeAuthUid',
+          'movementType',
+          'effectiveDate',
+          'reason',
+          'previousPositionId',
+          'newPositionId',
+          'previousManagerEmployeeId',
+          'newManagerEmployeeId',
+          'previousEmploymentType',
+          'newEmploymentType',
+          'previousEmploymentStatus',
+          'newEmploymentStatus',
+          'previousWorkMode',
+          'newWorkMode',
+          'createdAt',
+          'createdBy'
+        ])
+        && request.resource.data.keys().hasOnly([
+          'id',
+          'companyId',
+          'employeeId',
+          'employeeAuthUid',
+          'movementType',
+          'effectiveDate',
+          'reason',
+          'previousPositionId',
+          'newPositionId',
+          'previousManagerEmployeeId',
+          'newManagerEmployeeId',
+          'previousEmploymentType',
+          'newEmploymentType',
+          'previousEmploymentStatus',
+          'newEmploymentStatus',
+          'previousWorkMode',
+          'newWorkMode',
+          'createdAt',
+          'createdBy'
+        ])
+        && request.resource.data.id == movementId
+        && request.resource.data.companyId == companyId
+        && validStructureCode(request.resource.data.employeeId)
+        && request.resource.data.employeeAuthUid is string
+        && request.resource.data.employeeAuthUid.size() > 0
+        && request.resource.data.employeeAuthUid.size() <= 128
+        && request.resource.data.movementType in [
+          'transfer',
+          'promotion',
+          'reassignment',
+          'manager_change',
+          'employment_change',
+          'status_change',
+          'work_mode_change'
+        ]
+        && request.resource.data.effectiveDate is timestamp
+        && request.resource.data.reason is string
+        && request.resource.data.reason.size() > 0
+        && request.resource.data.reason.size() <= 500
+        && validStructureCode(request.resource.data.previousPositionId)
+        && validStructureCode(request.resource.data.newPositionId)
+        && (
+          request.resource.data.previousManagerEmployeeId == ''
+          || validStructureCode(request.resource.data.previousManagerEmployeeId)
+        )
+        && (
+          request.resource.data.newManagerEmployeeId == ''
+          || validStructureCode(request.resource.data.newManagerEmployeeId)
+        )
+        && request.resource.data.previousEmploymentType in [
+          'permanent',
+          'fixed_term',
+          'part_time',
+          'intern',
+          'consultant'
+        ]
+        && request.resource.data.newEmploymentType in [
+          'permanent',
+          'fixed_term',
+          'part_time',
+          'intern',
+          'consultant'
+        ]
+        && request.resource.data.previousEmploymentStatus in [
+          'active',
+          'probation',
+          'leave',
+          'suspended'
+        ]
+        && request.resource.data.newEmploymentStatus in [
+          'active',
+          'probation',
+          'leave',
+          'suspended'
+        ]
+        && request.resource.data.previousWorkMode in ['onsite', 'hybrid', 'remote']
+        && request.resource.data.newWorkMode in ['onsite', 'hybrid', 'remote']
+        && (
+          request.resource.data.previousPositionId != request.resource.data.newPositionId
+          || request.resource.data.previousManagerEmployeeId != request.resource.data.newManagerEmployeeId
+          || request.resource.data.previousEmploymentType != request.resource.data.newEmploymentType
+          || request.resource.data.previousEmploymentStatus != request.resource.data.newEmploymentStatus
+          || request.resource.data.previousWorkMode != request.resource.data.newWorkMode
+        )
+        && (
+          (
+            request.resource.data.movementType in [
+              'transfer',
+              'promotion',
+              'reassignment'
+            ]
+            && request.resource.data.previousPositionId
+              != request.resource.data.newPositionId
+          )
+          || (
+            request.resource.data.movementType == 'manager_change'
+            && request.resource.data.previousManagerEmployeeId
+              != request.resource.data.newManagerEmployeeId
+          )
+          || (
+            request.resource.data.movementType == 'employment_change'
+            && request.resource.data.previousEmploymentType
+              != request.resource.data.newEmploymentType
+          )
+          || (
+            request.resource.data.movementType == 'status_change'
+            && request.resource.data.previousEmploymentStatus
+              != request.resource.data.newEmploymentStatus
+          )
+          || (
+            request.resource.data.movementType == 'work_mode_change'
+            && request.resource.data.previousWorkMode
+              != request.resource.data.newWorkMode
+          )
+        )
+        && request.resource.data.createdAt is timestamp
+        && request.resource.data.createdBy is string;
+    }
+
+    function employeeAssignmentChangeBacked(companyId, employeeId) {
+      let affected = request.resource.data.diff(resource.data).affectedKeys();
+      let assignmentChanged = affected.hasAny([
+        'accessStatus',
+        'positionId',
+        'jobTitleId',
+        'branchId',
+        'locationId',
+        'departmentId',
+        'teamId',
+        'managerEmployeeId',
+        'employmentType',
+        'employmentStatus',
+        'workMode'
+      ]);
+      let movementLinked = affected.hasAny(['lastMovementId']);
+      return (
+          !assignmentChanged
+          && !movementLinked
+        )
+        || (
+          assignmentChanged
+          && movementLinked
+          && !exists(
+            employeeMovementPath(companyId, request.resource.data.lastMovementId)
+          )
+          && existsAfter(employeeMovementPath(companyId, request.resource.data.lastMovementId))
+          && getAfter(
+            employeeMovementPath(companyId, request.resource.data.lastMovementId)
+          ).data.employeeId == employeeId
+          && getAfter(
+            employeeMovementPath(companyId, request.resource.data.lastMovementId)
+          ).data.employeeAuthUid == request.resource.data.authUid
+        );
     }
 
     function validEmployeePrivateShape(companyId, employeeId) {
@@ -1070,7 +1404,7 @@ service cloud.firestore {
           && getAfter(userPath(request.resource.data.authUid)).data.status == request.resource.data.accessStatus;
 
         allow update: if admin(companyId)
-          && validEmployeeShape(companyId, employeeId)
+          && validEmployeeUpdateValues(employeeId)
           && activeEmployeeRelations(companyId, employeeId)
           && request.resource.data.id == resource.data.id
           && request.resource.data.companyId == resource.data.companyId
@@ -1081,6 +1415,7 @@ service cloud.firestore {
           && request.resource.data.createdBy == resource.data.createdBy
           && request.resource.data.updatedAt == request.time
           && request.resource.data.updatedBy == request.auth.uid
+          && employeeAssignmentChangeBacked(companyId, employeeId)
           && memberAfter(companyId, request.resource.data.authUid).data.employeeId == employeeId
           && memberAfter(companyId, request.resource.data.authUid).data.status == request.resource.data.accessStatus
           && getAfter(userPath(request.resource.data.authUid)).data.employeeId == employeeId
@@ -1101,6 +1436,7 @@ service cloud.firestore {
             'employmentType',
             'employmentStatus',
             'workMode',
+            'lastMovementId',
             'updatedAt',
             'updatedBy'
           ]);
@@ -1151,6 +1487,104 @@ service cloud.firestore {
           ]);
 
         allow delete: if false;
+      }
+
+      match /employeeDocuments/{documentId} {
+        allow read: if admin(companyId)
+          || (
+            activeMember(companyId)
+            && resource.data.employeeAuthUid == request.auth.uid
+            && resource.data.visibility == 'employee'
+          );
+
+        allow create: if admin(companyId)
+          && validEmployeeDocumentShape(companyId, documentId)
+          && exists(employeePath(companyId, request.resource.data.employeeId))
+          && get(
+            employeePath(companyId, request.resource.data.employeeId)
+          ).data.authUid == request.resource.data.employeeAuthUid
+          && request.resource.data.createdAt == request.time
+          && request.resource.data.updatedAt == request.time
+          && request.resource.data.createdBy == request.auth.uid
+          && request.resource.data.updatedBy == request.auth.uid;
+
+        allow update: if admin(companyId)
+          && validEmployeeDocumentShape(companyId, documentId)
+          && request.resource.data.id == resource.data.id
+          && request.resource.data.companyId == resource.data.companyId
+          && request.resource.data.employeeId == resource.data.employeeId
+          && request.resource.data.employeeAuthUid == resource.data.employeeAuthUid
+          && request.resource.data.createdAt == resource.data.createdAt
+          && request.resource.data.createdBy == resource.data.createdBy
+          && request.resource.data.updatedAt == request.time
+          && request.resource.data.updatedBy == request.auth.uid
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'type',
+            'title',
+            'documentNumber',
+            'issueDate',
+            'expiryDate',
+            'linkUrl',
+            'visibility',
+            'status',
+            'updatedAt',
+            'updatedBy'
+          ]);
+
+        allow delete: if false;
+      }
+
+      match /employeeMovements/{movementId} {
+        allow read: if admin(companyId)
+          || (
+            activeMember(companyId)
+            && resource.data.employeeAuthUid == request.auth.uid
+          );
+
+        allow create: if admin(companyId)
+          && validEmployeeMovementShape(companyId, movementId)
+          && request.resource.data.effectiveDate <= request.time
+          && request.resource.data.createdAt == request.time
+          && request.resource.data.createdBy == request.auth.uid
+          && exists(employeePath(companyId, request.resource.data.employeeId))
+          && get(
+            employeePath(companyId, request.resource.data.employeeId)
+          ).data.authUid == request.resource.data.employeeAuthUid
+          && get(
+            employeePath(companyId, request.resource.data.employeeId)
+          ).data.positionId == request.resource.data.previousPositionId
+          && get(
+            employeePath(companyId, request.resource.data.employeeId)
+          ).data.managerEmployeeId == request.resource.data.previousManagerEmployeeId
+          && get(
+            employeePath(companyId, request.resource.data.employeeId)
+          ).data.employmentType == request.resource.data.previousEmploymentType
+          && get(
+            employeePath(companyId, request.resource.data.employeeId)
+          ).data.employmentStatus == request.resource.data.previousEmploymentStatus
+          && get(
+            employeePath(companyId, request.resource.data.employeeId)
+          ).data.workMode == request.resource.data.previousWorkMode
+          && getAfter(
+            employeePath(companyId, request.resource.data.employeeId)
+          ).data.lastMovementId == movementId
+          && getAfter(
+            employeePath(companyId, request.resource.data.employeeId)
+          ).data.positionId == request.resource.data.newPositionId
+          && getAfter(
+            employeePath(companyId, request.resource.data.employeeId)
+          ).data.managerEmployeeId == request.resource.data.newManagerEmployeeId
+          && getAfter(
+            employeePath(companyId, request.resource.data.employeeId)
+          ).data.employmentType == request.resource.data.newEmploymentType
+          && getAfter(
+            employeePath(companyId, request.resource.data.employeeId)
+          ).data.employmentStatus == request.resource.data.newEmploymentStatus
+          && getAfter(
+            employeePath(companyId, request.resource.data.employeeId)
+          ).data.workMode == request.resource.data.newWorkMode;
+
+        allow update, delete: if false;
       }
 
       match /auditLogs/{logId} {
