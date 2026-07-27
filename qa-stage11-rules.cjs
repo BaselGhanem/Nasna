@@ -267,7 +267,13 @@ const requestRecord = ({
   withdrawnAt: null
 });
 
-const eventRecord = (requestId, eventId, actorUid, typeName) => ({
+const eventRecord = (
+  requestId,
+  eventId,
+  actorUid,
+  typeName,
+  payload = {}
+) => ({
   id: eventId,
   companyId,
   requestId,
@@ -276,7 +282,7 @@ const eventRecord = (requestId, eventId, actorUid, typeName) => ({
   actorRole: actorUid === `hr` ? `hr_admin` : `employee`,
   type: typeName,
   message: typeName,
-  payload: {},
+  payload,
   createdAt: serverTimestamp()
 });
 
@@ -551,10 +557,9 @@ const seedPendingFulfillment = async environment => {
   });
 };
 
-const fulfillShiftChange = database => {
+const applyShiftChangeSchedule = database => {
   const requestId = `REQUEST-FULFILL`;
   const replacementId = `SHIFT-${requestId}-EMP-1`;
-  const eventId = `FULFILLED-EVENT`;
   const replacement = {
     ...shift({
       id: replacementId,
@@ -588,25 +593,16 @@ const fulfillShiftChange = database => {
     updatedAt: serverTimestamp(),
     updatedBy: `hr`
   });
-  batch.update(
-    doc(
-      database,
-      `nasna_companies`,
-      companyId,
-      `requests`,
-      requestId,
-      `tasks`,
-      `HR-TASK`
-    ),
-    {
-      status: `APPROVED`,
-      decision: `approve`,
-      note: ``,
-      actedAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-      updatedBy: `hr`
-    }
-  );
+  return batch.commit();
+};
+
+const completeShiftChangeRequest = (
+  database,
+  replacementId = `SHIFT-REQUEST-FULFILL-EMP-1`
+) => {
+  const requestId = `REQUEST-FULFILL`;
+  const eventId = `FULFILLED-EVENT`;
+  const batch = writeBatch(database);
   batch.update(path(database, `requests`, requestId), {
     status: `COMPLETED`,
     currentAssigneeIds: [],
@@ -633,7 +629,39 @@ const fulfillShiftChange = database => {
       `events`,
       eventId
     ),
-    eventRecord(requestId, eventId, `hr`, `FULFILLED`)
+    eventRecord(requestId, eventId, `hr`, `FULFILLED`, {
+      fulfillmentRef: {
+        kind: `shift_change`,
+        id: replacementId,
+        colleagueId: ``,
+        requestId
+      }
+    })
+  );
+  return batch.commit();
+};
+
+const finalizeShiftChangeTask = database => {
+  const requestId = `REQUEST-FULFILL`;
+  const batch = writeBatch(database);
+  batch.update(
+    doc(
+      database,
+      `nasna_companies`,
+      companyId,
+      `requests`,
+      requestId,
+      `tasks`,
+      `HR-TASK`
+    ),
+    {
+      status: `APPROVED`,
+      decision: `approve`,
+      note: ``,
+      actedAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+      updatedBy: `hr`
+    }
   );
   return batch.commit();
 };
@@ -704,11 +732,10 @@ const seedPendingShiftSwap = async environment => {
   });
 };
 
-const fulfillShiftSwap = database => {
+const applyShiftSwapSchedule = database => {
   const requestId = `REQUEST-SWAP-FULFILL`;
   const firstReplacementId = `SHIFT-${requestId}-EMP-3`;
   const secondReplacementId = `SHIFT-${requestId}-EMP-4`;
-  const eventId = `SWAP-FULFILLED-EVENT`;
   const firstReplacement = {
     ...shift({
       id: firstReplacementId,
@@ -781,25 +808,15 @@ const fulfillShiftSwap = database => {
       }
     );
   });
-  batch.update(
-    doc(
-      database,
-      `nasna_companies`,
-      companyId,
-      `requests`,
-      requestId,
-      `tasks`,
-      `SWAP-HR-TASK`
-    ),
-    {
-      status: `APPROVED`,
-      decision: `approve`,
-      note: ``,
-      actedAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-      updatedBy: `hr`
-    }
-  );
+  return batch.commit();
+};
+
+const completeShiftSwapRequest = database => {
+  const requestId = `REQUEST-SWAP-FULFILL`;
+  const firstReplacementId = `SHIFT-${requestId}-EMP-3`;
+  const secondReplacementId = `SHIFT-${requestId}-EMP-4`;
+  const eventId = `SWAP-FULFILLED-EVENT`;
+  const batch = writeBatch(database);
   batch.update(path(database, `requests`, requestId), {
     status: `COMPLETED`,
     currentAssigneeIds: [],
@@ -826,8 +843,46 @@ const fulfillShiftSwap = database => {
       `events`,
       eventId
     ),
-    eventRecord(requestId, eventId, `hr`, `FULFILLED`)
+    eventRecord(requestId, eventId, `hr`, `FULFILLED`, {
+      fulfillmentRef: {
+        kind: `shift_swap`,
+        id: firstReplacementId,
+        colleagueId: secondReplacementId,
+        requestId
+      }
+    })
   );
+  return batch.commit();
+};
+
+const finalizeShiftSwapTask = database => {
+  const requestId = `REQUEST-SWAP-FULFILL`;
+  const batch = writeBatch(database);
+  batch.update(
+    doc(
+      database,
+      `nasna_companies`,
+      companyId,
+      `requests`,
+      requestId,
+      `tasks`,
+      `SWAP-HR-TASK`
+    ),
+    {
+      status: `APPROVED`,
+      decision: `approve`,
+      note: ``,
+      actedAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+      updatedBy: `hr`
+    }
+  );
+  return batch.commit();
+};
+
+const notifyCompletedShiftSwap = database => {
+  const requestId = `REQUEST-SWAP-FULFILL`;
+  const batch = writeBatch(database);
   batch.set(path(database, `notifications`, `SWAP-NOTIFICATION`), {
     id: `SWAP-NOTIFICATION`,
     companyId,
@@ -1003,7 +1058,20 @@ const publishResumableRoster = async database => {
   );
 
   await seedPendingFulfillment(environment);
-  await assertSucceeds(fulfillShiftChange(hrDb));
+  await assertFails(completeShiftChangeRequest(hrDb));
+  await assertFails(finalizeShiftChangeTask(hrDb));
+  await assertSucceeds(applyShiftChangeSchedule(hrDb));
+  const stagedChangeRequest = await getDoc(
+    path(hrDb, `requests`, `REQUEST-FULFILL`)
+  );
+  if (stagedChangeRequest.data().status !== `PENDING_FULFILLMENT`) {
+    throw new Error(`Shift change closed before schedule verification.`);
+  }
+  await assertFails(
+    completeShiftChangeRequest(hrDb, `SHIFT-NOT-APPLIED`)
+  );
+  await assertSucceeds(completeShiftChangeRequest(hrDb));
+  await assertSucceeds(finalizeShiftChangeTask(hrDb));
   const replacementSnapshot = await getDoc(
     path(hrDb, `shiftAssignments`, `SHIFT-REQUEST-FULFILL-EMP-1`)
   );
@@ -1012,11 +1080,20 @@ const publishResumableRoster = async database => {
     || replacementSnapshot.data().status !== `published`
     || replacementSnapshot.data().sourceRequestId !== `REQUEST-FULFILL`
   ) {
-    throw new Error(`Atomic shift fulfillment did not publish the replacement.`);
+    throw new Error(`Resumable shift fulfillment did not publish the replacement.`);
   }
 
   await seedPendingShiftSwap(environment);
-  await assertSucceeds(fulfillShiftSwap(hrDb));
+  await assertSucceeds(applyShiftSwapSchedule(hrDb));
+  const stagedSwapRequest = await getDoc(
+    path(hrDb, `requests`, `REQUEST-SWAP-FULFILL`)
+  );
+  if (stagedSwapRequest.data().status !== `PENDING_FULFILLMENT`) {
+    throw new Error(`Shift swap closed before schedule verification.`);
+  }
+  await assertSucceeds(completeShiftSwapRequest(hrDb));
+  await assertSucceeds(finalizeShiftSwapTask(hrDb));
+  await assertSucceeds(notifyCompletedShiftSwap(hrDb));
   const [firstSwapReplacement, secondSwapReplacement] = await Promise.all([
     getDoc(path(
       hrDb,
@@ -1033,7 +1110,7 @@ const publishResumableRoster = async database => {
     firstSwapReplacement.data().templateId !== `LATE`
     || secondSwapReplacement.data().templateId !== `DAY`
   ) {
-    throw new Error(`Atomic shift swap did not exchange both assignments.`);
+    throw new Error(`Resumable shift swap did not exchange both assignments.`);
   }
 
   await seedResumableRoster(environment);
@@ -1049,7 +1126,7 @@ const publishResumableRoster = async database => {
   }
 
   await environment.cleanup();
-  console.log(`Stage 11 Firestore authorization, atomic change/swap fulfillment, and resumable roster QA passed.`);
+  console.log(`Stage 11 Firestore authorization and resumable change, swap, and roster QA passed.`);
 })().catch(error => {
   console.error(error);
   process.exitCode = 1;

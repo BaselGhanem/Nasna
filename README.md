@@ -51,10 +51,10 @@ Stage 11 adds the scheduling foundation for NASNA Time:
 - HR may plan company-wide rosters, but only HR can configure reference data or activate shift-change services.
 - Published assignments use a daily employee/date lock and an immutable supersession chain so concurrent publications cannot silently overwrite one another.
 - Employees see only their own published schedule. Drafts remain visible only to their authorized planner and HR.
-- Change and swap requests activate only after policy, holiday year, shift templates, and one published roster are ready. Manager approval and HR fulfillment update the owning published schedule and request in one atomic operation.
+- Change and swap requests activate only after policy, holiday year, shift templates, and one published roster are ready. HR fulfillment first commits the locked schedule replacement, then completes the request only after rules verify that applied result. A retry resumes either phase without duplicating a shift.
 - Company-timezone conversion, daily and weekly limits, minimum rest, holiday controls, and documented HR warning overrides are enforced before publication.
 
-The Spark release does not use paid Cloud Functions or a server scheduler. SLA due dates now use the active Stage 11 working calendar and company-wide holidays when available; overdue indicators remain evaluated in the application and never auto-approve a request. Assignment notifications are idempotent and written after the atomic request, counter, event, and task transaction so Firestore rule-evaluation limits cannot create duplicate requests or messages. Email, WhatsApp, attendance punches, leave, payroll, loans, recruitment, performance, and training request types remain inactive until their owning stages are implemented.
+The Spark release does not use paid Cloud Functions or a server scheduler. SLA due dates now use the active Stage 11 working calendar and company-wide holidays when available; overdue indicators remain evaluated in the application and never auto-approve a request. Assignment notifications are idempotent and written only after the protected workflow transition, so retries cannot create duplicate requests or messages. Email, WhatsApp, attendance punches, leave, payroll, loans, recruitment, performance, and training request types remain inactive until their owning stages are implemented.
 
 **Live application:** https://baselghanem.github.io/Nasna/
 

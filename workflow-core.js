@@ -2218,12 +2218,118 @@ const stage11ScheduleConflicts = (record, originals, replacements, published) =>
   ));
 };
 
+const appliedStage11Fulfillment = async record => {
+  if (![ `shift_change`, `shift_swap` ].includes(record.typeCode)) return null;
+  const firstReplacementId = scheduleRequestAssignmentId(
+    record.id,
+    record.subjectEmployeeId
+  );
+  const references = [
+    companyDoc(`shiftAssignments`, firstReplacementId),
+    companyDoc(`shiftAssignments`, record.payload.assignmentId),
+    companyDoc(
+      `scheduleLocks`,
+      `${record.subjectEmployeeId}__${record.payload.workDate}`
+    )
+  ];
+  let secondReplacementId = ``;
+  if (record.typeCode === `shift_swap`) {
+    secondReplacementId = scheduleRequestAssignmentId(
+      record.id,
+      record.payload.colleagueEmployeeCode
+    );
+    references.push(
+      companyDoc(`shiftAssignments`, secondReplacementId),
+      companyDoc(`shiftAssignments`, record.payload.colleagueAssignmentId),
+      companyDoc(
+        `scheduleLocks`,
+        `${record.payload.colleagueEmployeeCode}__${record.payload.workDate}`
+      )
+    );
+  }
+  const snapshots = await Promise.all(references.map(reference => getDoc(reference)));
+  if (snapshots.some(snapshot => !snapshot.exists())) return null;
+  const [
+    firstReplacementSnapshot,
+    firstOriginalSnapshot,
+    firstLockSnapshot
+  ] = snapshots;
+  const firstReplacement = firstReplacementSnapshot.data();
+  const firstOriginal = firstOriginalSnapshot.data();
+  const firstLock = firstLockSnapshot.data();
+  const firstApplied = (
+    firstReplacement.status === `published`
+    && firstReplacement.sourceRequestId === record.id
+    && firstReplacement.previousAssignmentId === record.payload.assignmentId
+    && firstReplacement.employeeId === record.subjectEmployeeId
+    && firstReplacement.workDate === record.payload.workDate
+    && firstOriginal.status === `superseded`
+    && firstOriginal.supersededBy === firstReplacementId
+    && firstLock.currentAssignmentId === firstReplacementId
+    && Number(firstLock.version || 0) === Number(firstReplacement.version || 0)
+  );
+  if (!firstApplied) return null;
+  if (record.typeCode === `shift_change`) {
+    if (
+      firstReplacement.templateId
+        !== record.payload.requestedShiftTemplateId
+      || firstReplacement.locationId !== firstOriginal.locationId
+    ) {
+      return null;
+    }
+    return {
+      kind: `shift_change`,
+      id: firstReplacementId,
+      colleagueId: ``,
+      requestId: record.id
+    };
+  }
+
+  const secondReplacement = snapshots[3].data();
+  const secondOriginal = snapshots[4].data();
+  const secondLock = snapshots[5].data();
+  const secondApplied = (
+    secondReplacement.status === `published`
+    && secondReplacement.sourceRequestId === record.id
+    && secondReplacement.previousAssignmentId
+      === record.payload.colleagueAssignmentId
+    && secondReplacement.employeeId
+      === record.payload.colleagueEmployeeCode
+    && secondReplacement.workDate === record.payload.workDate
+    && secondOriginal.status === `superseded`
+    && secondOriginal.supersededBy === secondReplacementId
+    && secondLock.currentAssignmentId === secondReplacementId
+    && Number(secondLock.version || 0)
+      === Number(secondReplacement.version || 0)
+    && firstReplacement.templateId === secondOriginal.templateId
+    && firstReplacement.locationId === secondOriginal.locationId
+    && secondReplacement.templateId === firstOriginal.templateId
+    && secondReplacement.locationId === firstOriginal.locationId
+  );
+  if (!secondApplied) return null;
+  return {
+    kind: `shift_swap`,
+    id: firstReplacementId,
+    colleagueId: secondReplacementId,
+    requestId: record.id
+  };
+};
+
 const prepareStage11Fulfillment = async (requestId, fulfillmentNote) => {
   const requestSnapshot = await getDoc(companyDoc(`requests`, requestId));
   if (!requestSnapshot.exists()) throw new Error(`request-missing`);
   const record = requestSnapshot.data();
   if (![ `shift_change`, `shift_swap` ].includes(record.typeCode)) return null;
   if (!state.timePolicy) throw new Error(`time-policy-required`);
+  const appliedFulfillment = await appliedStage11Fulfillment(record);
+  if (appliedFulfillment) {
+    return {
+      alreadyApplied: true,
+      fulfillmentRef: appliedFulfillment,
+      conflictResult: `passed`,
+      conflictReason: ``
+    };
+  }
 
   const originalReference = companyDoc(
     `shiftAssignments`,
@@ -2344,9 +2450,101 @@ const prepareStage11Fulfillment = async (requestId, fulfillmentNote) => {
     throw error;
   }
   return {
+    alreadyApplied: false,
+    fulfillmentRef: null,
     conflictResult: warnings.length ? `override` : `passed`,
     conflictReason: warnings.length ? String(fulfillmentNote || ``).trim() : ``
   };
+};
+
+const completeStage11Fulfillment = async ({
+  requestId,
+  normalizedNote,
+  pendingTasks,
+  selectedTaskIndex,
+  fulfillmentRef
+}) => {
+  const requestReference = companyDoc(`requests`, requestId);
+  const taskReferences = pendingTasks.map(item => (
+    requestChildDoc(requestId, `tasks`, item.id)
+  ));
+  let completedRequest = null;
+  await runTransaction(db, async transaction => {
+    const requestSnapshot = await transaction.get(requestReference);
+    if (!requestSnapshot.exists()) throw new Error(`request-missing`);
+    const record = requestSnapshot.data();
+    if (
+      record.status === `COMPLETED`
+      && record.fulfillmentRef?.kind === fulfillmentRef.kind
+      && record.fulfillmentRef?.id === fulfillmentRef.id
+      && record.fulfillmentRef?.colleagueId === fulfillmentRef.colleagueId
+      && record.fulfillmentRef?.requestId === fulfillmentRef.requestId
+    ) {
+      completedRequest = record;
+      return;
+    }
+    if (
+      ![ `shift_change`, `shift_swap` ].includes(record.typeCode)
+      || record.status !== `PENDING_FULFILLMENT`
+      || !record.currentAssigneeIds.includes(state.user.uid)
+      || record.requesterUid === state.user.uid
+      || fulfillmentRef.kind !== record.typeCode
+      || fulfillmentRef.requestId !== record.id
+    ) {
+      throw new Error(`invalid-transition`);
+    }
+    const eventId = crypto.randomUUID();
+    transaction.update(requestReference, {
+      status: `COMPLETED`,
+      currentAssigneeIds: [],
+      outcome: {
+        code: `fulfilled`,
+        note: normalizedNote
+      },
+      fulfillmentRef,
+      completedAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+      updatedBy: state.user.uid,
+      revision: Number(record.revision || 0) + 1,
+      lastEventId: eventId
+    });
+    transaction.set(
+      requestChildDoc(requestId, `events`, eventId),
+      eventRecord(
+        requestId,
+        eventId,
+        `FULFILLED`,
+        normalizedNote || `Request completed`,
+        { fulfillmentRef }
+      )
+    );
+    completedRequest = record;
+  });
+  const taskBatch = writeBatch(db);
+  pendingTasks.forEach((pendingTask, index) => {
+    const selected = index === selectedTaskIndex;
+    taskBatch.update(taskReferences[index], {
+      status: selected ? `APPROVED` : `CANCELLED`,
+      decision: selected ? `approve` : `cancel`,
+      note: selected ? normalizedNote : `Parallel fulfillment completed`,
+      actedAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+      updatedBy: state.user.uid
+    });
+  });
+  await taskBatch.commit();
+  await writeNotificationOnce(
+    notificationRecord({
+      id: `completion-${requestId}`,
+      requestId,
+      recipientUid: completedRequest.requesterUid,
+      kind: `status`,
+      titleEn: `Request completed`,
+      titleAr: `اكتمل الطلب`,
+      bodyEn: `${completedRequest.requestNumber} has been completed.`,
+      bodyAr: `اكتمل ${completedRequest.requestNumber}.`
+    })
+  );
 };
 
 const fulfillRequest = async (requestId, { note = ``, reference = `` } = {}) => {
@@ -2366,6 +2564,17 @@ const fulfillRequest = async (requestId, { note = ``, reference = `` } = {}) => 
     requestId,
     normalizedNote
   );
+  if (stage11Plan?.alreadyApplied) {
+    await completeStage11Fulfillment({
+      requestId,
+      normalizedNote,
+      pendingTasks,
+      selectedTaskIndex,
+      fulfillmentRef: stage11Plan.fulfillmentRef
+    });
+    return;
+  }
+  let stagedShiftFulfillment = null;
 
   await runTransaction(db, async transaction => {
     const [requestSnapshot, ...taskSnapshots] = await Promise.all([
@@ -2906,6 +3115,8 @@ const fulfillRequest = async (requestId, { note = ``, reference = `` } = {}) => 
         colleagueId: replacementIds[1] || ``,
         requestId: record.id
       };
+      stagedShiftFulfillment = fulfillmentRef;
+      return;
     }
 
     const eventId = crypto.randomUUID();
@@ -2964,6 +3175,15 @@ const fulfillRequest = async (requestId, { note = ``, reference = `` } = {}) => 
       `اكتمل ${record.requestNumber}.`
     );
   });
+  if (stagedShiftFulfillment) {
+    await completeStage11Fulfillment({
+      requestId,
+      normalizedNote,
+      pendingTasks,
+      selectedTaskIndex,
+      fulfillmentRef: stagedShiftFulfillment
+    });
+  }
 };
 
 const cancelRequest = async (requestId, note = ``) => {
