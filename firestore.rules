@@ -5833,9 +5833,15 @@ service cloud.firestore {
                 companyId,
                 workflowRequestId,
                 taskId
-              )
+            )
             || (
               activeMember(companyId)
+              && !(
+                get(
+                  workflowRequestPath(companyId, workflowRequestId)
+                ).data.typeCode in ['shift_change', 'shift_swap']
+                && resource.data.stepType == 'fulfillment'
+              )
               && (
               (
                 resource.data.assigneeUid == request.auth.uid
