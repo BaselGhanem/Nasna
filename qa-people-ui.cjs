@@ -447,11 +447,27 @@ const installMocks = async (page, language = `en`) => {
 };
 
 const fillEmployeeForm = async (page, values) => {
-  await page.type(`#employeeCode`, values.employeeCode);
-  await page.type(`#fullNameEn`, values.fullNameEn);
-  await page.type(`#fullNameAr`, values.fullNameAr);
-  await page.type(`#workEmail`, values.workEmail);
-  if (values.password) await page.type(`#temporaryPassword`, values.password);
+  await page.waitForFunction(() => {
+    const modal = document.querySelector(`#employeeModal`);
+    const employeeCode = document.querySelector(`#employeeCode`);
+    return modal && !modal.hidden && employeeCode && !employeeCode.readOnly;
+  });
+  await page.evaluate(formValues => {
+    const fields = {
+      employeeCode: formValues.employeeCode,
+      fullNameEn: formValues.fullNameEn,
+      fullNameAr: formValues.fullNameAr,
+      workEmail: formValues.workEmail,
+      temporaryPassword: formValues.password || ``
+    };
+    Object.entries(fields).forEach(([id, value]) => {
+      const field = document.getElementById(id);
+      if (!field) return;
+      field.value = value;
+      field.dispatchEvent(new Event(`input`, { bubbles: true }));
+      field.dispatchEvent(new Event(`change`, { bubbles: true }));
+    });
+  }, values);
   await page.select(`#positionId`, values.positionId);
   if (values.managerEmployeeId) {
     await page.select(`#managerEmployeeId`, values.managerEmployeeId);
