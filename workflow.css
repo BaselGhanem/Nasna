@@ -594,6 +594,29 @@ html[dir="rtl"] .page-heading h1 {
   border-inline-start: 4px solid var(--danger);
 }
 
+.load-more-button {
+  width: 100%;
+  min-height: 44px;
+  border: 1px dashed rgba(9, 153, 153, 0.38);
+  border-radius: 13px;
+  color: var(--teal-dark);
+  background: var(--teal-soft);
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.load-more-button:hover {
+  border-style: solid;
+  background: #ddf5f2;
+}
+
+.load-more-button:disabled {
+  cursor: wait;
+  opacity: 0.62;
+}
+
 .request-row-main,
 .request-row-meta {
   min-width: 0;

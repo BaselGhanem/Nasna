@@ -1,0 +1,60 @@
+name: NASNA quality gate
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - 'agent/**'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: quality-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      FIREBASE_CLI_DISABLE_UPDATE_CHECK: true
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: Check JavaScript syntax
+        run: npm run check
+
+      - name: Test Firestore authorization
+        run: npm run test:rules
+        env:
+          FIREBASE_EMULATORS_PATH: ${{ runner.temp }}/firebase-emulators
+
+      - name: Test responsive product flows
+        run: npm run test:ui
+
+      - name: Upload failure screenshots
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: qa-screenshots
+          path: qa-*.png
+          if-no-files-found: ignore
+          retention-days: 7

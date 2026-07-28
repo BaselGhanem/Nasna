@@ -1,9 +1,9 @@
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-auth.js";
 import { doc, getDoc } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-firestore.js";
-import { auth } from "./firebase-config.js?v=20260726.3";
-import { db } from "./firestore-config.js?v=20260726.3";
+import { auth } from "./firebase-config.js?v=20260726.4";
+import { db } from "./firestore-config.js?v=20260726.4";
 
-const release = `20260726.3`;
+const release = `20260726.4`;
 const adminRoles = new Set([`super_admin`, `hr_admin`]);
 
 const translations = {

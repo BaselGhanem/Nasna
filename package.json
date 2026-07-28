@@ -1,0 +1,24 @@
+{
+  "name": "nasna-hr",
+  "version": "10.5.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "check": "node scripts/check-syntax.mjs",
+    "test:rules": "firebase emulators:exec --only firestore --project demo-nasna-stage105 \"node qa-rules.cjs && node qa-architecture-rules.cjs && node qa-people-rules.cjs && node qa-corehr-rules.cjs && node qa-stage10-transactions.cjs && node qa-stage10-rules.cjs && node qa-stage105-rules.cjs\"",
+    "test:ui": "node qa-stage10-ui.cjs && node qa-corehr-ui.cjs && node qa-people-ui.cjs",
+    "test": "npm run check && npm run test:rules && npm run test:ui"
+  },
+  "devDependencies": {
+    "@firebase/rules-unit-testing": "5.0.1",
+    "@sparticuz/chromium": "149.0.0",
+    "exceljs": "4.4.0",
+    "firebase": "12.16.0",
+    "firebase-tools": "14.23.0",
+    "proxy-agent": "8.0.2",
+    "puppeteer-core": "25.3.0"
+  }
+}

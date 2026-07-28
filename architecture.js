@@ -7,10 +7,10 @@ import {
   serverTimestamp,
   writeBatch
 } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-firestore.js";
-import { auth } from "./firebase-config.js?v=20260726.3";
-import { db } from "./firestore-config.js?v=20260726.3";
+import { auth } from "./firebase-config.js?v=20260726.4";
+import { db } from "./firestore-config.js?v=20260726.4";
 
-const version = `20260726.3`;
+const version = `20260726.4`;
 const languageKey = `nasna-language`;
 const adminRoles = new Set([`super_admin`, `hr_admin`]);
 const validStatuses = new Set([`active`, `inactive`]);
