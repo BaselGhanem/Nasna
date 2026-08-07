@@ -173,7 +173,7 @@ const eventRecord = (requestId, eventId, actorUid, type = `SUBMITTED`) => ({
   createdAt: serverTimestamp()
 });
 
-const createRequestBatch = async (database, data) => {
+const createRequestBatch = async (database, data, { withTask = false } = {}) => {
   const counterReference = doc(
     database,
     `nasna_companies`,
@@ -210,6 +210,42 @@ const createRequestBatch = async (database, data) => {
     ),
     eventRecord(data.id, data.lastEventId, data.requesterUid)
   );
+  if (withTask) {
+    const assigneeUid = data.currentAssigneeIds[0];
+    const taskId = `step-${data.currentStep}-${assigneeUid}`;
+    batch.set(
+      doc(
+        database,
+        `nasna_companies`,
+        companyId,
+        `requests`,
+        data.id,
+        `tasks`,
+        taskId
+      ),
+      {
+        id: taskId,
+        companyId,
+        requestId: data.id,
+        stepIndex: data.currentStep,
+        stepType: data.currentStepType,
+        mode: data.currentStepType === `fulfillment`
+          ? `parallel_any`
+          : `sequential`,
+        assigneeUid,
+        assigneeRole: assigneeUid.startsWith(`hr`) ? `hr_admin` : `employee`,
+        status: `PENDING`,
+        decision: ``,
+        note: ``,
+        dueAt: data.dueAt,
+        actedAt: null,
+        createdAt: serverTimestamp(),
+        createdBy: data.requesterUid,
+        updatedAt: serverTimestamp(),
+        updatedBy: data.requesterUid
+      }
+    );
+  }
   await batch.commit();
 };
 
@@ -354,7 +390,11 @@ const seed = async environment => {
     currentStepType: `fulfillment`,
     eventId: `EVENT-A10001-FALLBACK`
   });
-  await assertSucceeds(createRequestBatch(hrDb, noManagerHrFallback));
+  await assertSucceeds(createRequestBatch(
+    hrDb,
+    noManagerHrFallback,
+    { withTask: true }
+  ));
 
   const forgedNoManagerStep = requestRecord({
     id: `A10001-FORGED-STEP`,
@@ -371,7 +411,11 @@ const seed = async environment => {
     currentStepType: `fulfillment`,
     eventId: `EVENT-A10001-FORGED-STEP`
   });
-  await assertFails(createRequestBatch(hrDb, forgedNoManagerStep));
+  await assertFails(createRequestBatch(
+    hrDb,
+    forgedNoManagerStep,
+    { withTask: true }
+  ));
 
   await environment.withSecurityRulesDisabled(async context => {
     const database = context.firestore();
