@@ -339,6 +339,40 @@ const seed = async environment => {
   });
   await assertSucceeds(createRequestBatch(employeeDb, employeeRequest));
 
+  const noManagerHrFallback = requestRecord({
+    id: `A10001-FALLBACK`,
+    requesterUid: `hr`,
+    requesterEmployeeId: `HR-1`,
+    requesterName: `HR`,
+    subjectEmployeeId: `HR-1`,
+    subjectName: `HR`,
+    managerEmployeeId: ``,
+    status: `PENDING_FULFILLMENT`,
+    routeKind: `hr`,
+    assignees: [`hr-two`],
+    currentStep: 1,
+    currentStepType: `fulfillment`,
+    eventId: `EVENT-A10001-FALLBACK`
+  });
+  await assertSucceeds(createRequestBatch(hrDb, noManagerHrFallback));
+
+  const forgedNoManagerStep = requestRecord({
+    id: `A10001-FORGED-STEP`,
+    requesterUid: `hr`,
+    requesterEmployeeId: `HR-1`,
+    requesterName: `HR`,
+    subjectEmployeeId: `HR-1`,
+    subjectName: `HR`,
+    managerEmployeeId: ``,
+    status: `PENDING_FULFILLMENT`,
+    routeKind: `hr`,
+    assignees: [`hr-two`],
+    currentStep: 0,
+    currentStepType: `fulfillment`,
+    eventId: `EVENT-A10001-FORGED-STEP`
+  });
+  await assertFails(createRequestBatch(hrDb, forgedNoManagerStep));
+
   await environment.withSecurityRulesDisabled(async context => {
     const database = context.firestore();
     await setDoc(doc(
