@@ -302,7 +302,7 @@ const hrRequests = [
     routeKind: `hr`,
     payload: {
       reason: `Approved team reassignment`,
-      effectiveDate: `2026-08-05`
+      effectiveDate: `2099-12-31`
     }
   }),
   baseRequest(`HR-DONE`, {
