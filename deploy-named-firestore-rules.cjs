@@ -5,6 +5,7 @@ const auth = require(`firebase-tools/lib/auth`);
 const { Client } = require(`firebase-tools/lib/apiv2`);
 const { rulesOrigin } = require(`firebase-tools/lib/api`);
 const rulesApi = require(`firebase-tools/lib/gcp/rules`);
+const { getProjectNumber } = require(`firebase-tools/lib/getProjectNumber`);
 
 const root = process.cwd();
 const firebaseConfig = JSON.parse(
@@ -30,7 +31,8 @@ if (!account) {
   throw new Error(`firebase-login-required`);
 }
 
-auth.setActiveAccount({}, account);
+const options = { project: projectId };
+auth.setActiveAccount(options, account);
 
 const source = fs.readFileSync(path.join(root, rulesFile), `utf8`);
 const files = [{ name: rulesFile, content: source }];
@@ -55,7 +57,16 @@ const run = async () => {
   failOnCompilationErrors(compilation);
 
   console.log(`Creating immutable ruleset...`);
-  const rulesetName = await rulesApi.createRuleset(projectId, files);
+  const projectNumber = await getProjectNumber(options);
+  const attachmentPoint = (
+    `firestore.googleapis.com/projects/${projectNumber}`
+    + `/databases/${databaseId}`
+  );
+  const rulesetName = await rulesApi.createRuleset(
+    projectId,
+    files,
+    attachmentPoint
+  );
 
   console.log(`Updating named-database release...`);
   const client = new Client({
@@ -88,5 +99,7 @@ const run = async () => {
 run().catch(error => {
   console.error(`Rules deployment failed.`);
   console.error(error.message || error);
+  const details = error.context?.body?.error || error.context?.body;
+  if (details) console.error(JSON.stringify(details, null, 2));
   process.exitCode = 1;
 });
