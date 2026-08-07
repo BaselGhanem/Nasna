@@ -953,6 +953,8 @@ service cloud.firestore {
               requestType.initialResolver == 'direct_manager'
               && hasValidManager
               && data.routeKind == 'manager'
+              && data.currentStep == 0
+              && data.currentStepType == 'approval'
               && data.managerEmployeeId
                 == requesterEmployee.managerEmployeeId
               && data.status == 'PENDING_APPROVAL'
@@ -981,6 +983,18 @@ service cloud.firestore {
                 || !hasValidManager
               )
               && data.routeKind == 'hr'
+              && data.currentStepType == 'fulfillment'
+              && (
+                (
+                  requestType.initialResolver == 'hr'
+                  && data.currentStep == 0
+                )
+                || (
+                  requestType.initialResolver == 'direct_manager'
+                  && !hasValidManager
+                  && data.currentStep == 1
+                )
+              )
               && data.currentAssigneeIds.size() > 0
               && get(
                 memberPath(
@@ -1059,7 +1073,6 @@ service cloud.firestore {
         && data.updatedAt == request.time
         && data.updatedBy == request.auth.uid
         && data.revision == 0
-        && data.currentStep == 0
         && counterAfter.lastRequestId == workflowRequestId
         && counterAfter.lastRequestNumber
           == data.requestNumber
