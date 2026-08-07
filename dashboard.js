@@ -1,9 +1,9 @@
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-auth.js";
 import { doc, getDoc } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-firestore.js";
-import { auth } from "./firebase-config.js?v=20260726.4";
-import { db } from "./firestore-config.js?v=20260726.4";
+import { auth } from "./firebase-config.js?v=20260727.1";
+import { db } from "./firestore-config.js?v=20260727.1";
 
-const release = `20260726.4`;
+const release = `20260727.1`;
 const adminRoles = new Set([`super_admin`, `hr_admin`]);
 
 const translations = {
@@ -18,7 +18,7 @@ const translations = {
     accountActive: `Account active`,
     platformRoadmap: `Platform roadmap`,
     modulesHeading: `NASNA modules`,
-    stage: `Stage 10`,
+    stage: `Stage 11`,
     currentModule: `Current module`,
     completed: `Completed`,
     companyAccessTitle: `Company & Access`,
@@ -41,9 +41,13 @@ const translations = {
     lifecycleDescription: `Immutable transfers, promotions, reporting changes, and employment history.`,
     requestsApprovalsTitle: `Requests & Approvals`,
     requestsApprovalsDescription: `Employee self-service, manager approvals, HR fulfillment, notifications, SLAs, and immutable request history.`,
+    timeTitle: `NASNA Time`,
+    timeEmployeeDescription: `Your official published shifts, work locations, holidays, and tracked shift-change requests.`,
+    timeManagerDescription: `Your employee schedule plus a separate manager workspace for planning and publishing direct-report rosters.`,
+    timeAdminDescription: `Versioned work calendars, shift templates, holidays, roster publishing, and controlled shift changes.`,
     planned: `Planned`,
     coreDescription: `People records, organizational structure, roles, and documents.`,
-    timeDescription: `Attendance, shifts, leave, and working-time controls.`,
+    timeDescription: `Work calendars, shifts, schedules, and working-time controls.`,
     insightsDescription: `People analytics, workforce indicators, and executive dashboards.`,
     securityTitle: `Authentication protected`,
     securityCopy: `This page is only available while a valid Firebase session is active.`,
@@ -61,7 +65,7 @@ const translations = {
     accountActive: `الحساب فعّال`,
     platformRoadmap: `خارطة طريق المنصة`,
     modulesHeading: `أنظمة ناسنا`,
-    stage: `المرحلة 10`,
+    stage: `المرحلة 11`,
     currentModule: `النظام الحالي`,
     completed: `مكتمل`,
     companyAccessTitle: `الشركة والصلاحيات`,
@@ -84,9 +88,13 @@ const translations = {
     lifecycleDescription: `سجل غير قابل للتعديل للنقل والترقيات وتغيير التبعية والحركات الوظيفية.`,
     requestsApprovalsTitle: `الطلبات والموافقات`,
     requestsApprovalsDescription: `خدمة الموظف الذاتية وموافقات المدير وتنفيذ HR والإشعارات وSLA وسجل طلبات غير قابل للتعديل.`,
+    timeTitle: `ناسنا للوقت`,
+    timeEmployeeDescription: `وردياتك الرسمية المنشورة ومواقع العمل والعطل وطلبات تغيير الوردية المتتبعة.`,
+    timeManagerDescription: `جدولك كموظف مع مساحة مدير منفصلة لتخطيط جداول المرؤوسين ونشرها.`,
+    timeAdminDescription: `تقويمات عمل بإصدارات وقوالب ورديات وعطل ونشر جداول وتغييرات ورديات منضبطة.`,
     planned: `مخطط`,
     coreDescription: `بيانات الموظفين والهيكل التنظيمي والصلاحيات والمستندات.`,
-    timeDescription: `الحضور والمناوبات والإجازات وضوابط وقت العمل.`,
+    timeDescription: `تقويمات العمل والورديات والجداول وضوابط وقت العمل.`,
     insightsDescription: `تحليلات الموظفين ومؤشرات القوى العاملة ولوحات الإدارة.`,
     securityTitle: `محمية بالمصادقة`,
     securityCopy: `لا يمكن الوصول إلى هذه الصفحة دون جلسة Firebase صالحة.`,
@@ -108,6 +116,8 @@ const elements = {
   peopleModuleLink: document.querySelector(`#peopleModuleLink`),
   peopleModuleTitle: document.querySelector(`#peopleModuleTitle`),
   peopleModuleDescription: document.querySelector(`#peopleModuleDescription`),
+  timeModuleLink: document.querySelector(`#timeModuleLink`),
+  timeModuleDescription: document.querySelector(`#timeModuleDescription`),
   toast: document.querySelector(`#dashboardToast`),
   toastMessage: document.querySelector(`#dashboardToastMessage`)
 };
@@ -163,6 +173,26 @@ const renderPeopleModule = () => {
   elements.peopleModuleDescription.textContent = translate(descriptionKey);
 };
 
+const renderTimeModule = () => {
+  if (!elements.timeModuleLink || !sessionContext) return;
+  const { membership } = sessionContext;
+  const isAdmin = adminRoles.has(membership.role);
+  const hasEmployeeFile = Boolean(membership.employeeId);
+  const isManager = Boolean(membership.isManager || membership.role === `manager`);
+  elements.timeModuleLink.href = isAdmin
+    ? `time-admin.html?v=${release}`
+    : hasEmployeeFile
+      ? `schedule.html?v=${release}`
+      : `organization.html?v=${release}`;
+  elements.timeModuleDescription.textContent = translate(
+    isAdmin
+      ? `timeAdminDescription`
+      : isManager
+        ? `timeManagerDescription`
+        : `timeEmployeeDescription`
+  );
+};
+
 const setLanguage = language => {
   currentLanguage = language;
   safeStorage.set(storageKey, language);
@@ -177,6 +207,7 @@ const setLanguage = language => {
 
   elements.languageLabel.textContent = translate(`language`);
   renderPeopleModule();
+  renderTimeModule();
 };
 
 const showToast = messageKey => {
@@ -225,6 +256,7 @@ const loadSessionContext = async user => {
     membership: membershipSnapshot.data()
   };
   renderPeopleModule();
+  renderTimeModule();
 };
 
 const handleSignOut = async () => {

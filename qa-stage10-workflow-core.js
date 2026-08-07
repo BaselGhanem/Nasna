@@ -1,4 +1,4 @@
-export const release = `20260726.4`;
+export const release = `20260727.1`;
 export const auth = { languageCode: `en` };
 export const terminalStatuses = new Set([
   `COMPLETED`,

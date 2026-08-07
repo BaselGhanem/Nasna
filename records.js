@@ -10,10 +10,10 @@ import {
   where,
   writeBatch
 } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-firestore.js";
-import { auth } from "./firebase-config.js?v=20260726.4";
-import { db } from "./firestore-config.js?v=20260726.4";
+import { auth } from "./firebase-config.js?v=20260727.1";
+import { db } from "./firestore-config.js?v=20260727.1";
 
-const release = `20260726.4`;
+const release = `20260727.1`;
 const pageType = document.body.dataset.page || `documents`;
 const adminRoles = new Set([`super_admin`, `hr_admin`]);
 const activeEmploymentStatuses = new Set([`active`, `probation`, `leave`]);

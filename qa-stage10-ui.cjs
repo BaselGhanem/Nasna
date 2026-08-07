@@ -5,7 +5,7 @@ const puppeteer = require(`puppeteer-core`);
 const chromium = require(`@sparticuz/chromium`).default;
 
 const root = __dirname;
-const release = `20260726.4`;
+const release = `20260727.1`;
 const mockCore = fs.readFileSync(
   path.join(root, `qa-stage10-workflow-core.js`),
   `utf8`
@@ -187,12 +187,40 @@ const verifyProductionCoreImport = async browser => {
     request.continue();
   });
   await page.goto(`http://127.0.0.1:4175/qa-stage10-blank.html`);
-  const importedRelease = await page.evaluate(async version => {
+  const productionCore = await page.evaluate(async version => {
     const module = await import(`./workflow-core.js?v=${version}&parse=1`);
-    return module.release;
+    module.state.timePolicy = {
+      id: `POLICY-QA`,
+      timezone: `Asia/Amman`,
+      workingDays: [0, 1, 2, 3, 4],
+      workdayStart: `09:00`,
+      workdayEnd: `17:00`
+    };
+    module.state.timeSettings = {
+      activePolicyId: `POLICY-QA`,
+      holidayCalendarYear: 2026,
+      holidayCalendarConfirmedAt: new Date(`2026-01-01T00:00:00Z`)
+    };
+    module.state.timeHolidays = [{
+      date: `2026-07-28`,
+      branchId: ``,
+      status: `active`
+    }];
+    const due = module.businessDueDate(
+      2,
+      new Date(`2026-07-27T13:00:00Z`)
+    );
+    return {
+      release: module.release,
+      businessCalendarDue: due.toISOString()
+    };
   }, release);
   await page.close();
-  return importedRelease === release && errors.length === 0;
+  return {
+    imports: productionCore.release === release && errors.length === 0,
+    skipsHoliday: productionCore.businessCalendarDue
+      === `2026-07-29T07:00:00.000Z`
+  };
 };
 
 const run = async () => {
@@ -209,7 +237,10 @@ const run = async () => {
   const checks = {};
 
   try {
-    checks.productionCoreImportsInBrowser = await verifyProductionCoreImport(browser);
+    const productionCore = await verifyProductionCoreImport(browser);
+    checks.productionCoreImportsInBrowser = productionCore.imports;
+    checks.stage11BusinessCalendarSkipsCompanyHoliday =
+      productionCore.skipsHoliday;
     const employee = await openPage(
       browser,
       `requests`,

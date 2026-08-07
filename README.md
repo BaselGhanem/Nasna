@@ -28,7 +28,7 @@ NASNA will be delivered progressively as independent but connected modules:
 
 ## Current Stage
 
-**Stage 10.5 — Production hardening for Requests, Approvals & Employee Self-Service**
+**Stage 11 — NASNA Time scheduling foundation**
 
 Stage 08 adds a tenant-isolated employee document register for contracts, identity records, permits, certificates, secure HTTPS references, visibility controls, and expiry monitoring. HR Admin and Super Admin manage the register; employees can read only records explicitly shared with their own login. Firebase Storage is not used because Cloud Storage requires the Blaze plan. The Spark-compatible release stores document metadata and controlled references in Firestore.
 
@@ -44,7 +44,17 @@ There is no self-approval. A manager's personal request goes to their upper mana
 
 Stage 10.5 binds every audit entry to an authorized companion mutation, binds each request-counter increment to the request created in the same atomic write, routes new approvals through active delegations, blocks expired delegates in Firestore rules, fixes mobile navigation overflow, replaces the legacy Excel parser, and paginates request queues with matching composite indexes. New workspaces auto-install only the low-risk General HR request. Existing published tenant configuration is never retired automatically.
 
-The Spark release does not use paid Cloud Functions or a server scheduler. SLA due dates and overdue indicators are stored and evaluated in the application, and a deterministic in-app SLA notification is created when an assigned workspace opens. An overdue request is never auto-approved. Assignment notifications are idempotent and written after the atomic request, counter, event, and task transaction so Firestore rule-evaluation limits cannot create duplicate requests or messages. Email, WhatsApp, leave, attendance, payroll, loans, recruitment, performance, and training request types remain inactive until their owning stages are implemented.
+Stage 11 adds the scheduling foundation for NASNA Time:
+
+- HR publishes immutable work-calendar policies, active shift templates, and company- or branch-scoped holidays.
+- Managers retain their employee schedule and use a separate workspace to plan and publish only their direct reports.
+- HR may plan company-wide rosters, but only HR can configure reference data or activate shift-change services.
+- Published assignments use a daily employee/date lock and an immutable supersession chain so concurrent publications cannot silently overwrite one another.
+- Employees see only their own published schedule. Drafts remain visible only to their authorized planner and HR.
+- Change and swap requests activate only after policy, holiday year, shift templates, and one published roster are ready. HR fulfillment first commits the locked schedule replacement, then completes the request only after rules verify that applied result. A retry resumes either phase without duplicating a shift.
+- Company-timezone conversion, daily and weekly limits, minimum rest, holiday controls, and documented HR warning overrides are enforced before publication.
+
+The Spark release does not use paid Cloud Functions or a server scheduler. SLA due dates now use the active Stage 11 working calendar and company-wide holidays when available; overdue indicators remain evaluated in the application and never auto-approve a request. Assignment notifications are idempotent and written only after the protected workflow transition, so retries cannot create duplicate requests or messages. Email, WhatsApp, attendance punches, leave, payroll, loans, recruitment, performance, and training request types remain inactive until their owning stages are implemented.
 
 **Live application:** https://baselghanem.github.io/Nasna/
 
@@ -66,7 +76,7 @@ firebase deploy --only firestore:ai-studio-2f881b3f-5867-4dfd-b360-c85f26c6ded4
 The Firebase project is defined in `.firebaserc`. `firebase.json` binds both
 `firestore.rules` and `firestore.indexes.json` to the named database.
 
-Deploy the rules and indexes before merging a UI release that depends on them. The complete Stage 10.5 deployment order and acceptance matrix are documented in [`STAGE_10_5_RUNBOOK_AR.md`](STAGE_10_5_RUNBOOK_AR.md).
+Deploy the rules and indexes before merging a UI release that depends on them. The Stage 11 deployment order, activation gate, role tests, and rollback procedure are documented in [`STAGE_11_RUNBOOK_AR.md`](STAGE_11_RUNBOOK_AR.md).
 
 ## Data architecture
 
@@ -85,6 +95,13 @@ nasna_companies/{companyId}/employees/{employeeCode}
 nasna_companies/{companyId}/employeePrivate/{employeeCode}
 nasna_companies/{companyId}/employeeDocuments/{documentId}
 nasna_companies/{companyId}/employeeMovements/{movementId}
+nasna_companies/{companyId}/timePolicies/{policyVersionId}
+nasna_companies/{companyId}/timeSettings/current
+nasna_companies/{companyId}/shiftTemplates/{templateCode}
+nasna_companies/{companyId}/holidays/{holidayId}
+nasna_companies/{companyId}/rosters/{rosterId}
+nasna_companies/{companyId}/shiftAssignments/{assignmentId}
+nasna_companies/{companyId}/scheduleLocks/{employeeCode__workDate}
 nasna_companies/{companyId}/requestTypes/{typeVersionId}
 nasna_companies/{companyId}/workflowDefinitions/{workflowVersionId}
 nasna_companies/{companyId}/workflowDrafts/{draftId}
@@ -108,15 +125,21 @@ Document records store metadata and optional company-controlled HTTPS references
 
 Workflow drafts are visible and editable only by HR administrators. Publishing creates a new request-type and workflow version in one transaction, retires any prior active version with the same code, and deletes the draft. Published definitions are immutable. Submitted requests and their events are never deleted. Terminal request states are immutable; a follow-up starts as a new linked business request rather than reopening history.
 
-## Stage 10 operating runbook
+Time policies are immutable after publication. A roster draft moves through `saving` and `ready`; an interrupted save must be retried before publication. Official publication is resumable: each employee/date assignment, prior-version supersession, and schedule-lock increment is committed atomically, while roster progress is tracked with a publication token and completed count. The roster closes as `published` only after every assignment is complete.
+
+## Stage 10–11 operating runbook
 
 - Open `requests.html` for employee self-service.
 - Open `approvals.html` for a manager's team decision workspace; the manager remains an employee and cannot approve their own request.
 - Open `hr-operations.html` for fulfillment, restricted requests, workflow configuration, and reporting.
+- Open `schedule.html` for the signed-in employee's published schedule.
+- Open `team-schedule.html` for the separate manager planning workspace.
+- Open `time-admin.html` for HR calendar, template, holiday, activation, and publishing controls.
+- Activate shift-change services only after every readiness check is green.
 - If an SLA is overdue, NASNA highlights it and creates one in-app reminder per request step and assignee. It never changes the decision.
 - A restricted request routes directly to an independent HR administrator and is excluded from the manager's team history.
 - A future-dated employment movement remains pending until its effective date because Spark has no background scheduler.
-- Publish `firestore.rules` whenever a Stage 10 release changes its schema or authorization behavior.
+- Publish `firestore.rules` and `firestore.indexes.json` before the Stage 11 UI release.
 - Treat a metric ending with `+` as a lower bound until all request pages are loaded.
 
 ### Monitoring
@@ -133,7 +156,7 @@ Workflow drafts are visible and editable only by HR administrators. Publishing c
 - If one type is defective, retire that published type so no new request can use it. Existing requests remain readable and continue against their immutable type and workflow versions.
 - Never delete requests, tasks, events, or published workflow versions and never silently edit a published workflow. Correct the behavior in a new version.
 - If an adapter produced an incorrect employee, document, or movement change, HR records a compensating request and linked audit correction; history is preserved.
-- Roll back the GitHub UI only to the previous verified commit. Keep the Stage 10 security rules that protect already-created Stage 10 data until a tested compatible ruleset is deployed.
+- Roll back the GitHub UI only to the previous verified commit. Keep the Stage 11 security rules that protect already-created schedule and request data until a tested compatible ruleset is deployed.
 
 ## Access model
 
